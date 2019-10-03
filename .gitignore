@@ -1,5 +1,5 @@
-\saved_results\
 \.idea\
+*.npy
 *.pyc
 *.png
 *.xml
