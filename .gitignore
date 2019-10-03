@@ -1,5 +1,4 @@
 \.idea\
-*.npy
 *.pyc
 *.png
 *.xml
