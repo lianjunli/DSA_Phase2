@@ -11,6 +11,8 @@ import copy
 
 if __name__ == "__main__":
 
+  #----------------------  Input Arguments  ----------------------
+
     # Minimum data rate constraint (Mbps)
     minRate = 1
 
@@ -35,14 +37,19 @@ if __name__ == "__main__":
     # Intra cluster channel gain type used in DC objective function: min: minumu channel gain; average: geometric average channel gain
     DC_intra_gain_type = 'average' # min, average
 
-    # The total number of channels
-    n_channel = 2
-
     # The total number of clusters
     n_cluster = 10
 
     # The number of users per cluster
     n_user_cluster = 8
+
+    # SNR gap in dB
+    SNR_gap_dB = 3.9
+  #----------------------  End Input Arguments  ----------------------
+
+
+    # The total number of channels
+    n_channel = 2
 
     # The bandwidth of each channel (Hz)
     bandwidth_list = [5 * (10 ** 6), 5 * (10 ** 6)]
@@ -59,7 +66,7 @@ if __name__ == "__main__":
     priority = np.ones(n_cluster)
 
     # SNR Gap
-    SNR_gap = np.ones(n_cluster) * (10**(3.9 / 10))
+    SNR_gap = np.ones(n_cluster) * (10**(SNR_gap_dB / 10))
     env.SNR_gap = SNR_gap
 
     # QAM capability
