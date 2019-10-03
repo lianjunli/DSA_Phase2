@@ -11,7 +11,7 @@ import copy
 
 if __name__ == "__main__":
 
-#----------------------  Input Arguments  ----------------------
+#----------------------  System Parameters  ----------------------
 
     # Minimum data rate constraint (Mbps)
     minRate = 1
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     # SNR gap in dB
     SNR_gap_dB = 3.9
 
-#----------------------  End Input Arguments  ----------------------
+#----------------------  End System Parameters  ----------------------
 
     # The total number of channels
     n_channel = 2
