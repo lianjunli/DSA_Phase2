@@ -16,8 +16,8 @@ if __name__ == "__main__":
     # Minimum data rate constraint (Mbps)
     minRate = 1
 
-    # Maximum power constraint (Watt)
-    maxPower = 5
+    # Maximum power constraint (milliwatt)
+    maxPower = 1000
 
     # Minimum data rate scaling up factor
     alpha_list = [1, 2, 3, 4, 5]
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     env.B_list = bandwidth_list
 
     # Initialize the maximum power of each user (mW)
-    SU_power = maxPower * 1000 * np.ones(n_cluster)
+    SU_power = maxPower * np.ones(n_cluster)
 
     # Initialize priorities among clusters
     priority = np.ones(n_cluster)
@@ -75,6 +75,7 @@ if __name__ == "__main__":
     # multichannel capability
     channel_cap = np.ones(n_cluster, dtype=int) * 1
 
+    SUCCESS_INDICATOR = False
 
     '''
     Power Allocation
@@ -107,6 +108,7 @@ if __name__ == "__main__":
 
         if channel_alloc_type1:
             print('\nUse CG configuration 1')
+            SUCCESS_INDICATOR = True
 
             idx_ch = 0
 
@@ -340,6 +342,7 @@ if __name__ == "__main__":
 
             if channel_alloc_type1:
                 print('\nUse CG configuration 2')
+                SUCCESS_INDICATOR = True
 
                 idx_ch = 0
 
@@ -584,6 +587,7 @@ if __name__ == "__main__":
 
                 if channel_alloc_type1:
                     print('\nUse CG configuration 3')
+                    SUCCESS_INDICATOR = True
 
                     idx_ch = 0
 
@@ -828,3 +832,4 @@ if __name__ == "__main__":
 
                 else:
                     print('No feasible solution under all three CG configurations.')
+                    SUCCESS_INDICATOR = False
