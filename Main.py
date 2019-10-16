@@ -96,14 +96,14 @@ if __name__ == "__main__":
     for alpha in alpha_list:
         print('\n** alpha equals to {}'.format(alpha))
 
-        env.n_channel = 2
-        env.B_list = [5 * (10 ** 6), 5 * (10 ** 6)]
-
         # Initialize QoS requirement of SUs
         QoS_initial = minRate * (10 ** 6) # 1 Mbps
         QoS = QoS_initial * np.ones(n_cluster)
         env.QoS = QoS_initial * alpha
 
+        # Channel Allocation
+        env.n_channel = 2
+        env.B_list = [5 * (10 ** 6), 5 * (10 ** 6)]
         channel_alloc_type1 = CA_type1(env, minRate_intra_gain_type)
 
         if channel_alloc_type1:
@@ -113,7 +113,6 @@ if __name__ == "__main__":
         else:
             env.n_channel = 3
             env.B_list = [5 * (10 ** 6), 2.5 * (10 ** 6), 2.5 * (10 ** 6)]
-
             channel_alloc_type1 = CA_type1(env, minRate_intra_gain_type)
 
             if channel_alloc_type1:
@@ -123,7 +122,6 @@ if __name__ == "__main__":
             else:
                 env.n_channel = 4
                 env.B_list = [2.5 * (10 ** 6), 2.5 * (10 ** 6), 2.5 * (10 ** 6), 2.5 * (10 ** 6)]
-
                 channel_alloc_type1 = CA_type1(env, minRate_intra_gain_type)
 
                 if channel_alloc_type1:
@@ -135,6 +133,7 @@ if __name__ == "__main__":
                     SUCCESS_INDICATOR = False
                     quit()
 
+        # Power allocation
         idx_ch = 0
         for c1 in channel_alloc_type1:
 
