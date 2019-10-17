@@ -21,6 +21,7 @@ class PA_DC_MCS_minRate_channelCap:
     def __init__(self, power_alloc, channel_alloc, channel_gain, env, priority, SU_power,
                  minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order, channel_gain_minR):
         self.power_alloc = copy.deepcopy(power_alloc)
+        self.Succeed = False
         self.capacity_SU = np.zeros(power_alloc.shape[0])
         self.power_allocation(power_alloc, channel_alloc, channel_gain, env, priority, SU_power,
                               minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order,channel_gain_minR)
@@ -245,6 +246,7 @@ class PA_DC_MCS_minRate_channelCap:
             if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 1):
                 # print('power allocation is updated')
                 # print('number of search nodes = %d' % self.n_search_node_total)
+                self.Succeed = True # found solution
                 break
 
     def power_allocation_single_user(self, power_alloc, channel_alloc, channel_gain, env,
@@ -279,7 +281,7 @@ class PA_DC_MCS_minRate_channelCap:
         n_search_node = 0
         tic = time.clock()
         while (True):
-            if len(queue) == 0:
+            if len(queue) == 0 or n_search_node > 1000: # make sure DC won't search forever
                 # print(objective_value_SU(
                 #     power_alloc[n, :], n, channel_alloc, power_alloc, priority, channel_gain, env, SNR_gap))
                 # print(self.lowerbound_global)
