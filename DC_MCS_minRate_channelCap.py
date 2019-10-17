@@ -43,7 +43,7 @@ class PA_DC_MCS_minRate_channelCap:
         for j in range(n_su):
             if (j != n):
                 inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[n, j] * power_alloc[j, m]
-        return channel_gain[n, n] / SNR_gap[n] / (inter_sum + env.B * env.Noise)
+        return channel_gain[n, n] / SNR_gap[n] / (inter_sum + env.NoisePower[n])
 
     def region_minRate(self, SU_index, gradient, minRate, power_alloc, channel_alloc, channel_gain, env, SNR_gap):
         n_channel = power_alloc.shape[1]
@@ -98,7 +98,7 @@ class PA_DC_MCS_minRate_channelCap:
             for j in range(n_su):
                 if (j != n):
                     inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[n, j] * power_alloc[j, m]
-            QAM_max_power[m] = (2**(QAM_cap[n]+1) - 1) * (inter_sum + env.B * env.Noise) * (SNR_gap[n] / channel_gain[n, n])
+            QAM_max_power[m] = (2**(QAM_cap[n]+1) - 1) * (inter_sum + env.NoisePower[n]) * (SNR_gap[n] / channel_gain[n, n])
 
         return QAM_max_power
 
@@ -412,24 +412,24 @@ class PA_DC_MCS_minRate_channelCap:
             sum = 0
             for m in range(n_channel):
                 sum = sum + channel_alloc[n, m] * priority[n] * env.B / (10 ** 6) \
-                      * np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (C[m] + env.B * env.Noise))
+                      * np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (C[m] + env.NoisePower[n]))
             for k in range(n_su):
                 if (k != n):
                     for m in range(n_channel):
                         sum = sum + channel_alloc[k, m] * priority[k] * env.B / (10 ** 6) \
-                              * np.log2(E[k, m] + env.B * env.Noise + channel_alloc[n, m] * channel_gain[k, n] * p[m])
+                              * np.log2(E[k, m] + env.NoisePower[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
             return sum
 
         def df(p):
             df = np.zeros(n_channel)
             for m in range(n_channel):
                 df[m] = df[m] + channel_alloc[n, m] * priority[n] * env.B / (10 ** 6) / np.log(2) * channel_gain[n, n] \
-                        / SNR_gap[n] / (C[m] + env.B * env.Noise + channel_gain[n, n] / SNR_gap[n] * p[m])
+                        / SNR_gap[n] / (C[m] + env.NoisePower[n] + channel_gain[n, n] / SNR_gap[n] * p[m])
                 for k in range(n_su):
                     if (k != n):
                         df[m] = df[m] + channel_alloc[k, m] * priority[k] * env.B / (10 ** 6) / np.log(2) * \
                                 channel_alloc[n, m] * channel_gain[k, n] \
-                                / (E[k, m] + env.B * env.Noise + channel_alloc[n, m] * channel_gain[k, n] * p[m])
+                                / (E[k, m] + env.NoisePower[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
             return df
 
         def g(p, low_dim=False):
@@ -447,7 +447,7 @@ class PA_DC_MCS_minRate_channelCap:
                 if (k != n):
                     for m in range(n_channel):
                         sum = sum + channel_alloc[k, m] * priority[k] * env.B / (10 ** 6) \
-                              * np.log2(D[k, m] + env.B * env.Noise + channel_alloc[n, m] * channel_gain[k, n] * p[m])
+                              * np.log2(D[k, m] + env.NoisePower[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
             return sum
 
         def finite_power_solver(vertex_list, vertex_total):
@@ -525,7 +525,7 @@ class PA_DC_MCS_minRate_channelCap:
             vertices_array = np.array(vertices, dtype=float)
 
             if (vertices_array.size == 0):
-                print("Cannot find a feasible solution!")
+                # print("Cannot find a feasible solution!")
                 os._exit()
 
             upperbound_max = -float("inf")
@@ -702,7 +702,7 @@ class PA_DC_MCS_minRate_channelCap:
         vertices_array = np.array(vertices, dtype=float)
 
         if (vertices_array.size == 0):
-            print("Cannot find a feasible solution!")
+            # print("Cannot find a feasible solution!")
             return False
         else:
             return True

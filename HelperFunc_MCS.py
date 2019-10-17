@@ -54,7 +54,7 @@ def objective_value(channel_alloc, power_alloc, priority, channel_gain, env, SNR
                         inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[n, j] * power_alloc[j, m]
                 capacity_sum = capacity_sum + \
                                priority[n] * env.B/(10**6) * \
-                               np.log2(1 + channel_gain[n, n] / SNR_gap[n] * power_alloc[n, m] / (inter_sum + env.B * env.Noise))
+                               np.log2(1 + channel_gain[n, n] / SNR_gap[n] * power_alloc[n, m] / (inter_sum + env.NoisePower[n]))
     return capacity_sum
 
 
@@ -63,7 +63,7 @@ def objective_value_SU(p, SU_index, channel_alloc, power_alloc, priority, channe
     n_channel = power_alloc.shape[1]
     n_su = power_alloc.shape[0]
     B = env.B
-    Noise = env.Noise
+    # Noise = env.Noise
     n = SU_index
 
     capacity_sum = 0
@@ -74,7 +74,7 @@ def objective_value_SU(p, SU_index, channel_alloc, power_alloc, priority, channe
                 if (j != n):
                     inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[n, j] * power_alloc[j, m]
             capacity_sum = capacity_sum + priority[n] * B / (10 ** 6) * \
-                           np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (inter_sum + env.B * env.Noise))
+                           np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (inter_sum + env.NoisePower[n]))
 
     for k in range(n_su):
         if (k != n):
@@ -86,7 +86,7 @@ def objective_value_SU(p, SU_index, channel_alloc, power_alloc, priority, channe
                             inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[k, j] * power_alloc[j, m]
                     capacity_sum = capacity_sum + priority[k] * B / (10 ** 6) * \
                                    np.log2(1 + channel_gain[k, k] / SNR_gap[k] * power_alloc[k, m]
-                                   / (inter_sum + B * Noise + channel_alloc[n, m] * channel_gain[k, n] * p[m]))
+                                   / (inter_sum + env.NoisePower[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m]))
     return capacity_sum
 
 def capacity_SU(p, SU_index, channel_alloc, power_alloc, priority, channel_gain, env, SNR_gap):
@@ -94,7 +94,7 @@ def capacity_SU(p, SU_index, channel_alloc, power_alloc, priority, channel_gain,
     n_channel = power_alloc.shape[1]
     n_su = power_alloc.shape[0]
     B = env.B
-    Noise = env.Noise
+    # Noise = env.Noise
     n = SU_index
 
     capacity_sum = 0
@@ -105,7 +105,7 @@ def capacity_SU(p, SU_index, channel_alloc, power_alloc, priority, channel_gain,
                 if (j != n):
                     inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[n, j] * power_alloc[j, m]
             capacity_sum = capacity_sum + priority[n] * B / (10 ** 6) * \
-                           np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (inter_sum + env.B * env.Noise))
+                           np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (inter_sum + env.NoisePower[n]))
     return capacity_sum
 
 def capacity_SU_channel(p, SU_index, channel_index, channel_alloc, power_alloc, priority, channel_gain, env, SNR_gap):
@@ -113,7 +113,7 @@ def capacity_SU_channel(p, SU_index, channel_index, channel_alloc, power_alloc, 
     n_channel = power_alloc.shape[1]
     n_su = power_alloc.shape[0]
     B = env.B
-    Noise = env.Noise
+    # Noise = env.Noise
     n = SU_index
     m = channel_index
 
@@ -125,7 +125,7 @@ def capacity_SU_channel(p, SU_index, channel_index, channel_alloc, power_alloc, 
             if (j != n):
                 inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[n, j] * power_alloc[j, m]
         capacity_sum = capacity_sum + priority[n] * B / (10 ** 6) * \
-                       np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (inter_sum + env.B * env.Noise))
+                       np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (inter_sum + env.NoisePower[n]))
     return capacity_sum
 
 def rate_SU(group, tx, rx, power_alloc, channel_gain, priority, env, SNR_gap):
@@ -145,7 +145,7 @@ def rate_SU(group, tx, rx, power_alloc, channel_gain, priority, env, SNR_gap):
                 inter_tx_index = g * n_su_group + i
                 sum = sum + power_alloc[g, 0] * channel_gain[rx_index, inter_tx_index]
         sum = sum / n_su_group
-        sum = sum + env.B * env.Noise
+        sum = sum + env.NoisePower[group]
 
         return sum
 
@@ -271,7 +271,7 @@ def cal_CP_simulate(cluster, channel_gain, power_alloc, SNR_gap, sigma, R_min, e
                         interfered_gain = np.float_power(10, -PLdB / 10)
                         interference += 1 / n_user_cluster * power_alloc[interfered_cluster] * interfered_gain
 
-                SINR = power_alloc[cluster] * desired_gain / (interference + env.B * env.Noise)
+                SINR = power_alloc[cluster] * desired_gain / (interference + env.NoisePower[cluster])
                 Data_rate = env.B * np.log2(1 + SINR / SNR_gap)
                 Network_capacity_sum += Data_rate / (10**6)
                 if (Data_rate >= R_min):
@@ -282,7 +282,7 @@ def cal_CP_simulate(cluster, channel_gain, power_alloc, SNR_gap, sigma, R_min, e
     network_capacity = Network_capacity_sum / Total_number_of_test
     return coverage_prob, network_capacity
 
-def check_feasibility(h, gamma, bandwidth, N0, power):
+def check_feasibility(h, gamma, bandwidth, env, power, cluster_index):
     n_UE = len(h[0, :])
 
     B = np.zeros((n_UE, n_UE))
@@ -295,7 +295,7 @@ def check_feasibility(h, gamma, bandwidth, N0, power):
 
     u = np.zeros(n_UE)
     for n in range(n_UE):
-        u[n] = gamma[n] / h[n, n] * bandwidth * N0
+        u[n] = gamma[n] / h[n, n] * env.NoisePower[cluster_index[n]]
 
     spec_radius = np.max(np.abs(np.linalg.eigvals(B)))
     # print("The spectral radius is {0}".format(spec_radius))
@@ -352,7 +352,7 @@ def estimate_throughput(i_UE, channel_cluster0, env, p_max, ch_gains):
 
 def diff_in_throughput(i_UE, channel_cluster0, env, p_max, ch_gains):
     B = env.B
-    N_0 = env.Noise
+    # N_0 = env.Noise
 
     ch_gains0 = copy.deepcopy(ch_gains)
     ch_gains0 = ch_gains0[channel_cluster0, :]
@@ -364,7 +364,7 @@ def diff_in_throughput(i_UE, channel_cluster0, env, p_max, ch_gains):
     sum_rate0 = 0
     for n in range(num_UE_0):
         sum_of_ph = p_max * (np.sum(ch_gains0[:, n]) - ch_gains0[n, n])
-        sum_rate0 += B * np.log2(1 + ch_gains0[n, n] * p_max / env.SNR_gap[channel_cluster0[n]] / (sum_of_ph + B * N_0))
+        sum_rate0 += B * np.log2(1 + ch_gains0[n, n] * p_max / env.SNR_gap[channel_cluster0[n]] / (sum_of_ph + env.NoisePower[channel_cluster0[n]]))
 
     channel_cluster = copy.deepcopy(channel_cluster0)
     channel_cluster.append(i_UE)
@@ -378,11 +378,11 @@ def diff_in_throughput(i_UE, channel_cluster0, env, p_max, ch_gains):
 
     gamma = (2 ** (env.QoS / B) - 1) * SNR_gap * np.ones(len(channel_cluster))
 
-    is_feasible, _ = check_feasibility(ch_gains, gamma, B, env.Noise, p_max)
+    is_feasible, _ = check_feasibility(ch_gains, gamma, B, env, p_max, channel_cluster)
 
     sum_rate = 0
     for n in range(num_UE):
         sum_of_ph = p_max * (np.sum(ch_gains[:, n]) - ch_gains[n, n])
-        sum_rate += B * np.log2(1 + ch_gains[n, n] * p_max / env.SNR_gap[channel_cluster[n]] / (sum_of_ph + B * N_0))
+        sum_rate += B * np.log2(1 + ch_gains[n, n] * p_max / env.SNR_gap[channel_cluster[n]] / (sum_of_ph + env.NoisePower[channel_cluster[n]]))
 
     return is_feasible, sum_rate - sum_rate0

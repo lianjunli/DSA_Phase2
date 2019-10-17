@@ -22,9 +22,13 @@ class Winner2_Optimizer():
 
         # Set the bandwidth
         # self.B = B
+
         # Set the noise spectral density (mw/Hz)
-        Noise_spectral_dBm = -154  #20 dB above the thermal noise spectral density -174dBm/Hz
-        self.Noise = 10**(Noise_spectral_dBm/10)
+        # Noise_spectral_dBm = -154  #20 dB above the thermal noise spectral density -174dBm/Hz
+        # self.Noise = 10**(Noise_spectral_dBm/10)
+        self.NoisePower_dBm = np.ones(self.n_cluster) * -154 #noise power per cluster in dBm
+        self.NoisePower = 10**(self.NoisePower_dBm/10) * 5*10**6
+
         # Set the carrier frequency (2 GHz)
         self.fc = 2
         # Set the path loss model exponent

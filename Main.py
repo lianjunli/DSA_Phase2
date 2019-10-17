@@ -17,10 +17,10 @@ if __name__ == "__main__":
     minRate = 1
 
     # Maximum power constraint (milliwatt)
-    maxPower = 1000
+    maxPower = 5000
 
     # Minimum data rate scaling up factor
-    alpha_list = [1, 2, 3, 4, 5]
+    alpha_list = [1, 2]
 
     # Fading margin used in method 2 (dB)
     Log_Normal_sigma = 0
