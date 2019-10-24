@@ -87,12 +87,12 @@ def CPO(minRateMargin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_in
         h_std_dB_cg = h_std_dB[cluster_list]
 
 
-        if minRate_intra_gain_type == 'min':
+        if minRate_intra_gain_type == 2:
             h_minRate = h_min_cg
         else:
             h_minRate = h_mean_cg
 
-        if DC_intra_gain_type == 'min':
+        if DC_intra_gain_type == 2:
             h_DC = h_min_cg
         else:
             h_DC = h_mean_cg

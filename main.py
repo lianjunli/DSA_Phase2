@@ -17,10 +17,10 @@ shadow_Fading_Margin = 3
 area = 600
 
 # Intra cluster channel gain type used in minmum data constraint: min: minumu channel gain; average: geometric average channel gain
-minRate_intra_gain_type = 'average'  # min, average
+minRate_intra_gain_type = 1  # min = 2, average = 1
 
 # Intra cluster channel gain type used in DC objective function: min: minumu channel gain; average: geometric average channel gain
-DC_intra_gain_type = 'average'  # min, average
+DC_intra_gain_type = 1  # min = 2, average = 1
 
 # The total number of clusters
 n_cluster = 10
