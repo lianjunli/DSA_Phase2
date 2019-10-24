@@ -20,14 +20,12 @@ class Winner2_Optimizer():
         self.n_user_cluster = n_user_cluster
         self.n_user = self.n_cluster * self.n_user_cluster
 
-        # Set the bandwidth
-        # self.B = B
 
-        # Set the noise spectral density (mw/Hz)
-        # Noise_spectral_dBm = -154  #20 dB above the thermal noise spectral density -174dBm/Hz
-        # self.Noise = 10**(Noise_spectral_dBm/10)
-        self.NoisePower_dBm = np.ones(self.n_cluster) * -154 #noise power per cluster in dBm
-        self.NoisePower = 10**(self.NoisePower_dBm/10) * 5*10**6
+        # Set noise power per cluster per 1.25Mhz channel
+        self.NoisePower_dBm = np.ones((self.n_cluster,self.n_channel)) * -105 #noise power per cluster in dBm #-93
+        self.NoisePower_mat = 10**(self.NoisePower_dBm/10)
+
+
 
         # Set the carrier frequency (2 GHz)
         self.fc = 2

@@ -3,13 +3,13 @@ import cvxopt as cvx
 import copy
 from HelperFunc_MCS import *
 
-def PA_GP_MCS_minRate(channel_alloc, channel_gain, env, priority, SU_power, minRate, SNR_gap, QAM_cap, objective_list):
+def PA_GP_MCS_minRate(channel_alloc, channel_gain, B, noise_vec, priority, SU_power, minRate, SNR_gap, QAM_cap, objective_list):
 
     n_su = channel_alloc.shape[0]
     n_channel = channel_alloc.shape[1]
 
     channel_gain = copy.deepcopy(channel_gain)
-    Noise = copy.deepcopy(env.NoisePower)
+    Noise = copy.deepcopy(noise_vec)
     channel_gain = channel_gain * (10 ** 8)
     Noise = Noise * (10 ** 8)
 
@@ -37,7 +37,7 @@ def PA_GP_MCS_minRate(channel_alloc, channel_gain, env, priority, SU_power, minR
     for m in range(n_channel):
         for n in range(n_su):
             if (channel_alloc[n, m] == 1):
-                F_obj[channel_alloc_total + i] = priority[n] * env.B / (10 ** 6)
+                F_obj[channel_alloc_total + i] = priority[n] * B / (10 ** 6)
                 i = i + 1
 
     g_obj = np.zeros(1)
@@ -103,7 +103,7 @@ def PA_GP_MCS_minRate(channel_alloc, channel_gain, env, priority, SU_power, minR
     for n in range(n_su):
         for m in range(n_channel):
             if (channel_alloc[n, m] == 1):
-                F_minRate[n, channel_alloc_total + index0] = env.B / (10 ** 6)
+                F_minRate[n, channel_alloc_total + index0] = B / (10 ** 6)
                 index0 = index0 + 1
 
     g_minRate = np.zeros(n_su)
@@ -171,7 +171,7 @@ def PA_GP_MCS_minRate(channel_alloc, channel_gain, env, priority, SU_power, minR
                 power_alloc[n, m] = sol[index0]
                 index0 = index0 + 1
 
-    objective_list['total'].append(objective_value(channel_alloc, power_alloc, priority, channel_gain / (10 ** 8), env, SNR_gap))
+    objective_list['total'].append(objective_value(channel_alloc, power_alloc, priority, channel_gain / (10 ** 8), B, noise_vec, SNR_gap))
 
 
     return power_alloc
