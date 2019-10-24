@@ -51,15 +51,16 @@ noise_mat=[]
 
 ###----------------------SYSTEM INPUTS END----------------------###
 
-# number of channels
-n_channel = len(channel_IDs)
-
 # simulate environment
-h_mean, h_min, h_std_dB, h_all, h_all_dB, noise_mat = environment_simulation(n_channel, n_cluster, n_user_cluster, area)
+h_mean, h_min, h_std_dB, h_all, h_all_dB, noise_mat \
+    = environment_simulation(channel_IDs, n_cluster, n_user_cluster, area)
 
 # channel allocation and power allocation
-channel_allocation, channel_bandwidth, power_allocation, noise_vec, SUCCESS_INDICATOR = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type, SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, n_user_cluster)
+channel_allocation, channel_bandwidth, power_allocation, noise_vec, SUCCESS_INDICATOR \
+    = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type,
+          SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, n_user_cluster)
 
 # performance evaluation
 if SUCCESS_INDICATOR:
-    performance_evaluation(channel_allocation, channel_bandwidth, power_allocation, h_all, noise_vec, Log_Normal_sigma, n_cluster, n_user_cluster, SNR_gap_dB, minRate)
+    performance_evaluation(channel_allocation, channel_bandwidth, power_allocation, h_all, noise_vec, Log_Normal_sigma,
+                           n_cluster, n_user_cluster, SNR_gap_dB, minRate)
