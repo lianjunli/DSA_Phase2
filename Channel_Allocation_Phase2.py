@@ -17,6 +17,8 @@ def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, no
 
     CG_cluster = [[] for i in range(n_CGs)]
 
+    cluster_wo_feasible_ch = []
+
     # For the remaining unassigned clusters, check their feasibility in each channel group and allocate channel based
     # on estimated throughput
     for i_user in unassigned_user_list:
@@ -28,9 +30,13 @@ def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, no
                 idx = i_CG
                 maxThrougput = estThroughput
                 exist_feasible_ch = True
-        if exist_feasible_ch == False:
-            return None
-        CG_cluster[idx].append(i_user)
+        if exist_feasible_ch == False and cg.n_large_CGs > 0:
+            return None, None
+        elif exist_feasible_ch == False and cg.n_large_CGs == 0:
+            cluster_wo_feasible_ch.append(i_user)
+            continue
+        else:
+            CG_cluster[idx].append(i_user)
 
     temp = [[] for i in range(n_CGs)]
     for i_ch in range(n_CGs):
@@ -41,7 +47,7 @@ def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, no
 
     # plot_SU_location_CA(channel_cluster, center_x, center_y, user_x, user_y, area)
 
-    return channel_cluster
+    return channel_cluster, cluster_wo_feasible_ch
 
 
 def plot_SU_location_CA(channel_cluster, group_x, group_y, SU_x, SU_y, area):

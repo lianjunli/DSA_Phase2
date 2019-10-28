@@ -44,7 +44,8 @@ minRate = [1] * n_cluster
 maxPower = [30] * n_cluster
 
 # Channel IDs
-channel_IDs = [2, 11, 12, 13, 14, 15, 16]
+# channel_IDs = [2, 11, 12, 13, 14, 15, 16]
+channel_IDs = [11]
 
 # NoisePower
 noise_mat=[]
