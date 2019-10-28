@@ -5,6 +5,8 @@ from HelperFunc_MCS import diff_in_throughput
 
 def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, noise_mat, SNR_gap, QoS):
 
+    IS_SUCC = True
+
     n_CGs = cg.n_CGs
 
     n_cluster = n_cluster
@@ -31,9 +33,10 @@ def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, no
                 maxThrougput = estThroughput
                 exist_feasible_ch = True
         if exist_feasible_ch == False and cg.n_large_CGs > 0:
-            return None, None
+            return None, None, False
         elif exist_feasible_ch == False and cg.n_large_CGs == 0:
             cluster_wo_feasible_ch.append(i_user)
+            IS_SUCC = False
             continue
         else:
             CG_cluster[idx].append(i_user)
@@ -47,7 +50,7 @@ def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, no
 
     # plot_SU_location_CA(channel_cluster, center_x, center_y, user_x, user_y, area)
 
-    return channel_cluster, cluster_wo_feasible_ch
+    return channel_cluster, cluster_wo_feasible_ch, IS_SUCC
 
 
 def plot_SU_location_CA(channel_cluster, group_x, group_y, SU_x, SU_y, area):

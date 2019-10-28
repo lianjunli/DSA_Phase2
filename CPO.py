@@ -38,12 +38,12 @@ def CPO(minRateMargin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_in
     # Channel Allocation
     channel_alloc_type1 = None
     while cg.n_large_CGs > 0:
-        channel_alloc_type1, _ = CA_type1(n_cluster, h_mean, h_min, cg, minRate_intra_gain_type, SU_power[0], noise_mat, SNR_gap, QoS[0])
+        channel_alloc_type1, _, _ = CA_type1(n_cluster, h_mean, h_min, cg, minRate_intra_gain_type, SU_power[0], noise_mat, SNR_gap, QoS[0])
         if channel_alloc_type1:
             break
         else:
             cg.split()
-    channel_alloc_type1, cluster_wo_feasible_ch = CA_type1(n_cluster, h_mean, h_min, cg, minRate_intra_gain_type, SU_power[0], noise_mat, SNR_gap, QoS[0])
+    channel_alloc_type1, cluster_wo_feasible_ch, SUCCESS_INDICATOR_CA = CA_type1(n_cluster, h_mean, h_min, cg, minRate_intra_gain_type, SU_power[0], noise_mat, SNR_gap, QoS[0])
 
     if len(cluster_wo_feasible_ch) > 0:
         print('\nClusters cannot be assigned: {}'.format(cluster_wo_feasible_ch))
