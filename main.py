@@ -44,24 +44,35 @@ minRate = [1] * n_cluster
 maxPower = [30] * n_cluster
 
 # Channel IDs
-# channel_IDs = [2, 11, 12, 13, 14, 15, 16]
-channel_IDs = [11]
+channel_IDs = [2, 11, 12, 13, 14, 15, 16]
+# channel_IDs = [11, 12, 13, 14]
+# channel_IDs = [11]
+
+# Unit channel bandwidth (MHz)
+unit_bandwidth = 1.25
 
 # NoisePower
 noise_mat=[]
 
 ###----------------------SYSTEM INPUTS END----------------------###
-
 # simulate environment
 h_mean, h_min, h_std_dB, h_all, h_all_dB, noise_mat \
     = environment_simulation(channel_IDs, n_cluster, n_user_cluster, area)
 
 # channel allocation and power allocation
-channel_allocation, channel_bandwidth, power_allocation, noise_vec, SUCCESS_INDICATOR \
+out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, \
+channel_allocation, channel_groups, power_allocation, noise_vec \
     = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type,
-          SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, n_user_cluster)
+          SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth)
+
+print('\n** CPO Outputs:')
+print('Cluster ID', out_cluster_IDs)
+print('Assigned first channel index', out_1st_channel_idx)
+print('Number of channels assigned', out_num_channels)
+print('Transmit power', out_power)
 
 # performance evaluation
-if SUCCESS_INDICATOR:
-    performance_evaluation(channel_allocation, channel_bandwidth, power_allocation, h_all, noise_vec, Log_Normal_sigma,
-                           n_cluster, n_user_cluster, SNR_gap_dB, minRate)
+print('\n** Evaluation start...')
+performance_evaluation(channel_allocation, channel_groups, power_allocation, h_all, noise_vec, Log_Normal_sigma,
+                       n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth)
+

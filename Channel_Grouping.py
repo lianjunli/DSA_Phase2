@@ -2,13 +2,15 @@ import numpy as np
 
 
 class ChannelGrouping:
-    def __init__(self, channel_IDs):
+    def __init__(self, channel_IDs, unit_bandwidth):
 
         self.channel_IDs = channel_IDs
 
         self.n_channels = len(channel_IDs)
 
         self.contiguous_channels = []
+
+        self.unit_bandwidth = unit_bandwidth
 
         temp_CG = [channel_IDs[0]]
 
@@ -50,7 +52,7 @@ class ChannelGrouping:
         for i_CG in range(self.n_CGs):
             self.n_channels_in_CGs[i_CG] = len(self.channel_groups[i_CG])
 
-        self.bandwidth_CGs = 1.25 * (10**6) * self.n_channels_in_CGs
+        self.bandwidth_CGs = self.unit_bandwidth * (10**6) * self.n_channels_in_CGs
 
         self.n_large_CGs = len(self.large_CGs)
         self.n_small_CGs = len(self.small_CGs)
@@ -73,7 +75,7 @@ class ChannelGrouping:
             for i_CG in range(self.n_CGs):
                 self.n_channels_in_CGs[i_CG] = len(self.channel_groups[i_CG])
 
-            self.bandwidth_CGs = 1.25 * (10 ** 6) * self.n_channels_in_CGs
+            self.bandwidth_CGs = self.unit_bandwidth * (10 ** 6) * self.n_channels_in_CGs
 
             self.n_large_CGs = len(self.large_CGs)
             self.n_small_CGs = len(self.small_CGs)

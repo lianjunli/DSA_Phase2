@@ -2,7 +2,7 @@ import numpy as np
 import copy
 import networkx as nx
 from itertools import combinations
-from HelperFunc_MCS import *
+from HelperFunc_CPO import objective_value_SU, capacity_SU, objective_value
 import time
 import cdd
 import os
@@ -112,6 +112,7 @@ class PA_DC_MCS_minRate_channelCap:
         self.epsilon = 0.1
         self.n_search_node_total = 0
 
+        tic = time.time()
         while (True):
             previous_power_alloc = copy.deepcopy(power_alloc)
             # When the user update restarts, initialize SU_max_power
@@ -243,8 +244,13 @@ class PA_DC_MCS_minRate_channelCap:
                     objective_value(channel_alloc, power_alloc, priority, channel_gain, B, noise_vec, SNR_gap))
 
 
+            toc = time.time()
+            if (toc-tic) > 5:
+                # print('iteration converge timeout')
+                self.Succeed = True # found solution
+                break
 
-            if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 1):
+            if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 1 ):
                 # print('power allocation is updated')
                 # print('number of search nodes = %d' % self.n_search_node_total)
                 self.Succeed = True # found solution

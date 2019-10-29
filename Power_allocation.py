@@ -1,7 +1,7 @@
 import numpy as np
 import cvxopt as cvx
 import copy
-from HelperFunc_MCS import *
+from HelperFunc_CPO import objective_value
 
 def PA_GP_MCS_minRate(channel_alloc, channel_gain, B, noise_vec, priority, SU_power, minRate, SNR_gap, QAM_cap, objective_list):
 

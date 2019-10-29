@@ -1,16 +1,19 @@
+import numpy as np
+import copy
 from Channel_Allocation_Phase2 import CA_type1
 from Channel_Grouping import ChannelGrouping
 from Power_allocation import PA_GP_MCS_minRate
 from DC_MCS_minRate_channelCap import PA_DC_MCS_minRate_channelCap
-from HelperFunc_MCS import *
+from HelperFunc_CPO import objective_value, translate_to_std_output
 import os
 
-def CPO(minRateMargin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type, SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, n_user_cluster):
+def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type, SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth):
     alpha = 10 ** (minRateMargin / 10)
     SU_power = 10 ** (np.asarray(maxPower) / 10)
     priority = np.asarray(priority)
     SNR_gap = 10 ** (np.asarray(SNR_gap_dB) / 10)
     n_cluster = len(maxPower)
+    h_min = copy.deepcopy(h_mean)
     # QAM capability
     QAM_cap = np.ones(n_cluster) * 10
     # multichannel capability
@@ -18,13 +21,9 @@ def CPO(minRateMargin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_in
     # add the shadow fading margin in channel coefficients
     for n in range(n_cluster):
         h_mean[n, n] = 10 ** (-np.sqrt(shadow_Fading_Margin ** 2) / 10) * h_mean[n, n]
-        h_min[n, n] = 10 ** (-np.sqrt(shadow_Fading_Margin ** 2) / 10) * h_min[n, n]
+        h_min[n, n] = 10 ** (-np.sqrt(shadow_Fading_Margin ** 2) / 10) * h_min_diag[n]
 
-    SUCCESS_INDICATOR_CA = False
-    SUCCESS_INDICATOR_DC = False
-    SUCCESS_INDICATOR = False
     power_alloc_DC_record = np.zeros(n_cluster)
-
 
     print('\n** alpha equals to {}'.format(alpha))
 
@@ -33,7 +32,7 @@ def CPO(minRateMargin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_in
     QoS = QoS_initial * alpha
 
     # Initialize channel grouping
-    cg = ChannelGrouping(channel_IDs)
+    cg = ChannelGrouping(channel_IDs, unit_bandwidth)
 
     # Channel Allocation
     channel_alloc_type1 = None
@@ -45,21 +44,24 @@ def CPO(minRateMargin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_in
             cg.split()
     channel_alloc_type1, cluster_wo_feasible_ch, SUCCESS_INDICATOR_CA = CA_type1(n_cluster, h_mean, h_min, cg, minRate_intra_gain_type, SU_power[0], noise_mat, SNR_gap, QoS[0])
 
-    if len(cluster_wo_feasible_ch) > 0:
-        print('\nClusters cannot be assigned: {}'.format(cluster_wo_feasible_ch))
-
-    if channel_alloc_type1:
-        print('Channel allocation succeed.')
-        SUCCESS_INDICATOR_CA = True
-        print('\nCG configuration: {}'.format(cg.channel_groups))
-
+    if SUCCESS_INDICATOR_CA == False:
+        print('Channel allocation failed to accommodate all clusters.')
+        print('Clusters cannot be assigned: {}'.format(cluster_wo_feasible_ch))
+        print('CG configuration: {}'.format(cg.channel_groups))
+        print('Channel allocation result',channel_alloc_type1)
     else:
-        print('Channel allocation fail, no feasible solution.')
-        quit()
+        print('Channel allocation succeed.')
+        print('CG configuration: {}'.format(cg.channel_groups))
+        print('Channel allocation result', channel_alloc_type1)
+
+    # else:
+    #     print('Channel allocation fail, no feasible solution.')
+    #     quit()
 
     # power allocation
     noise_vec = np.zeros(n_cluster)
     idx_ch = 0
+    SUCCESS_INDICATOR_DC = True
     for c1 in channel_alloc_type1:
 
         print('\n* Channel {0} with clusters: {1}'.format(idx_ch + 1, c1))
@@ -162,10 +164,11 @@ def CPO(minRateMargin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_in
                                                     h_minRate)
 
         power_alloc_DC = power_engine.power_alloc
-        SUCCESS_INDICATOR_DC = power_engine.Succeed
-        if not SUCCESS_INDICATOR_DC:
-            print('Power allocation fail!')
-            break
+        SUCCESS_INDICATOR_temp = power_engine.Succeed
+        if not SUCCESS_INDICATOR_temp:
+            print('Power allocation fail, skip current channel.')
+            SUCCESS_INDICATOR_DC = False
+            continue
         power_alloc_DC_record[cluster_list] = power_alloc_DC.reshape(n_cluster_optimizer)
 
         '''
@@ -174,17 +177,24 @@ def CPO(minRateMargin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_in
         print('Power allocation (DC):')
         for i in range(n_cluster_optimizer):
             print('Cluster %d: Power = %.2f mW' % (cluster_list[i],power_alloc_DC[i][0]))
-            # print('{} mW'.format(power_alloc_DC[i][0]))
+            print('{} mW'.format(power_alloc_DC[i][0]))
 
         idx_ch += 1
-    SUCCESS_INDICATOR = SUCCESS_INDICATOR_CA and SUCCESS_INDICATOR_DC
 
-    if SUCCESS_INDICATOR:
+    if SUCCESS_INDICATOR_DC:
         print('Power allocation succeed.')
-        file_path = '.\\saved_results\\'
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-        np.save(file_path + 'power_alloc_DC', power_alloc_DC_record)
-        np.save(file_path + 'channel_alloc.npy', channel_alloc_type1)
 
-    return channel_alloc_type1, cg.bandwidth_CGs, power_alloc_DC_record, noise_vec, SUCCESS_INDICATOR
+    file_path = '.\\saved_results\\'
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
+    np.save(file_path + 'power_alloc_DC', power_alloc_DC_record)
+    np.save(file_path + 'channel_alloc.npy', channel_alloc_type1)
+
+    SUCCESS_INDICATOR = SUCCESS_INDICATOR_CA and SUCCESS_INDICATOR_DC
+    out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power = translate_to_std_output(channel_alloc_type1,
+                                                                                                cg.channel_groups,
+                                                                                                cluster_ID,
+                                                                                                power_alloc_DC_record)
+
+
+    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, channel_alloc_type1, cg.channel_groups, power_alloc_DC_record, noise_vec

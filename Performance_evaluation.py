@@ -1,7 +1,8 @@
-from HelperFunc_MCS import *
+from HelperFunc_Eva import cal_CP_simulate
 import os
+import numpy as np
 
-def performance_evaluation(channel_allocation, channel_bandwidth, power_allocation, h_all, noise_vec, Log_Normal_sigma, n_cluster, n_user_cluster, SNR_gap_dB, minRate):
+def performance_evaluation(channel_allocation, channel_groups, power_allocation, h_all, noise_vec, Log_Normal_sigma, n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth):
     # Initialize the parameters
     CP_simulation = np.zeros(n_cluster)
     capacity_simulation = np.zeros(n_cluster)
@@ -13,7 +14,7 @@ def performance_evaluation(channel_allocation, channel_bandwidth, power_allocati
 
         print('\n* Channel {0} with clusters: {1}'.format(idx_ch + 1, c1))
 
-        B = channel_bandwidth[idx_ch]
+        B = len(channel_groups[idx_ch]) *unit_bandwidth*10**6
 
         # Retrieve the clusters that share one channel
         if (c1 == None):

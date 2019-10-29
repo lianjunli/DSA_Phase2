@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
-from HelperFunc_MCS import diff_in_throughput
+from HelperFunc_CPO import diff_in_throughput
 
 def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, noise_mat, SNR_gap, QoS):
 
