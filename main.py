@@ -16,10 +16,10 @@ shadow_Fading_Margin = 3
 # Simulation area (square meter)
 area = 600
 
-# Intra cluster channel gain type used in minmum data constraint: min: minumu channel gain; average: geometric average channel gain
+# Intra cluster channel gain type used in minimum data constraint: min: minimum channel gain; average: geometric average channel gain
 minRate_intra_gain_type = 1  # min = 2, average = 1
 
-# Intra cluster channel gain type used in DC objective function: min: minumu channel gain; average: geometric average channel gain
+# Intra cluster channel gain type used in DC objective function: min: minimum channel gain; average: geometric average channel gain
 DC_intra_gain_type = 1  # min = 2, average = 1
 
 # The total number of clusters
@@ -69,7 +69,8 @@ print('\n** CPO Outputs:')
 print('Cluster ID', out_cluster_IDs)
 print('Assigned first channel index', out_1st_channel_idx)
 print('Number of channels assigned', out_num_channels)
-print('Transmit power', out_power)
+print('Transmit power', [ round(elem, 2) for elem in out_power])
+print ('Success indicator ', SUCCESS_INDICATOR)
 
 # performance evaluation
 print('\n** Evaluation start...')

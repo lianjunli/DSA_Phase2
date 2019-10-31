@@ -77,107 +77,112 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                 cluster_list.append(c3)
         cluster_list.sort()
 
+        SUCCESS_INDICATOR_temp = False
+        while (not SUCCESS_INDICATOR_temp and len(cluster_list)>0):
         # Initialize the parameters using in the optimizer
-        n_cluster_optimizer = len(cluster_list)
-        SU_power_optimizer = SU_power[cluster_list]
-        priority_optimizer = priority[cluster_list]
-        SNR_gap_optimizer = SNR_gap[cluster_list]
-        QAM_cap_optimizer = QAM_cap[cluster_list]
-        channel_cap_optimizer = channel_cap[cluster_list]
-        QoS_optimizer = QoS[cluster_list]
+            n_cluster_optimizer = len(cluster_list)
+            SU_power_optimizer = SU_power[cluster_list]
+            priority_optimizer = priority[cluster_list]
+            SNR_gap_optimizer = SNR_gap[cluster_list]
+            QAM_cap_optimizer = QAM_cap[cluster_list]
+            channel_cap_optimizer = channel_cap[cluster_list]
+            QoS_optimizer = QoS[cluster_list]
 
-        # Initialize the channel gain
-        h_mean_cg = h_mean[cluster_list][:,cluster_list]
-        h_min_cg = h_min[cluster_list][:,cluster_list]
-        h_std_dB_cg = h_std_dB[cluster_list]
+            # Initialize the channel gain
+            h_mean_cg = h_mean[cluster_list][:,cluster_list]
+            h_min_cg = h_min[cluster_list][:,cluster_list]
+            h_std_dB_cg = h_std_dB[cluster_list]
 
 
-        if minRate_intra_gain_type == 2:
-            h_minRate = h_min_cg
-        else:
-            h_minRate = h_mean_cg
+            if minRate_intra_gain_type == 2:
+                h_minRate = h_min_cg
+            else:
+                h_minRate = h_mean_cg
 
-        if DC_intra_gain_type == 2:
-            h_DC = h_min_cg
-        else:
-            h_DC = h_mean_cg
+            if DC_intra_gain_type == 2:
+                h_DC = h_min_cg
+            else:
+                h_DC = h_mean_cg
 
-        # Initialize the channel allocation
-        channel_alloc_init = np.ones((len(cluster_list), 1))
+            # Initialize the channel allocation
+            channel_alloc_init = np.ones((len(cluster_list), 1))
 
-        # Initialize the update order
-        update_priority_optimizer = np.zeros(len(cluster_list))
-        for n in range(n_cluster_optimizer):
-            update_priority_optimizer[n] = priority_optimizer[n] * h_mean[n, n] * (10 ** 6)
-        update_order_optimizer = np.argsort(-update_priority_optimizer)
+            # Initialize the update order
+            update_priority_optimizer = np.zeros(len(cluster_list))
+            for n in range(n_cluster_optimizer):
+                update_priority_optimizer[n] = priority_optimizer[n] * h_mean[n, n] * (10 ** 6)
+            update_order_optimizer = np.argsort(-update_priority_optimizer)
 
-        # Noise power calculation
-        channel_cg_IDs = cg.channel_groups[idx_ch] #1.25M channel IDs in this channel group, IDs can be inconsecutive number
-        channel_cg_Idx = [] #Index are consecutive number starting from 0
-        for e in channel_cg_IDs:
-            channel_Idx = cg.channel_IDs.index(e)
-            channel_cg_Idx.append(channel_Idx)
-        noise_cg_mat = noise_mat[cluster_list][:,channel_cg_Idx]
-        noise_vec_cg = np.sum(noise_cg_mat,axis=1)
-        noise_vec[cluster_list] = noise_vec_cg
+            # Noise power calculation
+            channel_cg_IDs = cg.channel_groups[idx_ch] #1.25M channel IDs in this channel group, IDs can be inconsecutive number
+            channel_cg_Idx = [] #Index are consecutive number starting from 0
+            for e in channel_cg_IDs:
+                channel_Idx = cg.channel_IDs.index(e)
+                channel_cg_Idx.append(channel_Idx)
+            noise_cg_mat = noise_mat[cluster_list][:,channel_cg_Idx]
+            noise_vec_cg = np.sum(noise_cg_mat,axis=1)
+            noise_vec[cluster_list] = noise_vec_cg
 
-        '''
-        Iteration (Geometric programming)
-        '''
-        # Use the initialized channel allocation
-        channel_alloc_optimizer = copy.deepcopy(channel_alloc_init)
+            '''
+            Iteration (Geometric programming)
+            '''
+            # Use the initialized channel allocation
+            channel_alloc_optimizer = copy.deepcopy(channel_alloc_init)
 
-        objective_list_GP = {'total': []}
-        power_alloc_GP = PA_GP_MCS_minRate(channel_alloc_optimizer, h_minRate, B, noise_vec_cg,
-                                             priority_optimizer,
-                                             SU_power_optimizer, QoS_optimizer,
-                                             SNR_gap_optimizer,
-                                             QAM_cap_optimizer, objective_list_GP)
+            objective_list_GP = {'total': []}
+            power_alloc_GP = PA_GP_MCS_minRate(channel_alloc_optimizer, h_minRate, B, noise_vec_cg,
+                                                 priority_optimizer,
+                                                 SU_power_optimizer, QoS_optimizer,
+                                                 SNR_gap_optimizer,
+                                                 QAM_cap_optimizer, objective_list_GP)
 
-        '''
-        Iteration (DC programming)
-        '''
-        # Use the initialized channel allocation
-        channel_alloc_optimizer = copy.deepcopy(channel_alloc_init)
+            '''
+            Iteration (DC programming)
+            '''
+            # Use the initialized channel allocation
+            channel_alloc_optimizer = copy.deepcopy(channel_alloc_init)
 
-        # Record the sum weighted data rate
-        objective_list_DC = {'total': []}
+            # Record the sum weighted data rate
+            objective_list_DC = {'total': []}
 
-        # Use GP as initial power allocation
-        power_alloc_DC = copy.deepcopy(power_alloc_GP)
+            # Use GP as initial power allocation
+            power_alloc_DC = copy.deepcopy(power_alloc_GP)
 
-        # Record the objective value
-        objective_list_DC['total'].append(
-            objective_value(channel_alloc_optimizer, power_alloc_DC,
-                            priority_optimizer, h_DC, B, noise_vec_cg,
-                            SNR_gap_optimizer))
-        # power allocation update
-        power_engine = PA_DC_MCS_minRate_channelCap(power_alloc_DC, channel_alloc_optimizer,
-                                                    h_DC,
-                                                    B,
-                                                    noise_vec_cg,
-                                                    priority_optimizer, SU_power_optimizer,
-                                                    QoS_optimizer,
-                                                    SNR_gap_optimizer, QAM_cap_optimizer,
-                                                    channel_cap_optimizer,
-                                                    objective_list_DC, update_order_optimizer,
-                                                    h_minRate)
+            # Record the objective value
+            objective_list_DC['total'].append(
+                objective_value(channel_alloc_optimizer, power_alloc_DC,
+                                priority_optimizer, h_DC, B, noise_vec_cg,
+                                SNR_gap_optimizer))
+            # power allocation update
+            power_engine = PA_DC_MCS_minRate_channelCap(power_alloc_DC, channel_alloc_optimizer,
+                                                        h_DC,
+                                                        B,
+                                                        noise_vec_cg,
+                                                        priority_optimizer, SU_power_optimizer,
+                                                        QoS_optimizer,
+                                                        SNR_gap_optimizer, QAM_cap_optimizer,
+                                                        channel_cap_optimizer,
+                                                        objective_list_DC, update_order_optimizer,
+                                                        h_minRate)
 
-        power_alloc_DC = power_engine.power_alloc
-        SUCCESS_INDICATOR_temp = power_engine.Succeed
-        if not SUCCESS_INDICATOR_temp:
-            print('Power allocation fail, skip current channel.')
-            SUCCESS_INDICATOR_DC = False
-            continue
-        power_alloc_DC_record[cluster_list] = power_alloc_DC.reshape(n_cluster_optimizer)
+            power_alloc_DC = power_engine.power_alloc
+            SUCCESS_INDICATOR_temp = power_engine.Succeed
+            if SUCCESS_INDICATOR_temp:
+                power_alloc_DC_record[cluster_list] = power_alloc_DC.reshape(n_cluster_optimizer)
+            else:
+                print('Power allocation fail, remove the last cluster ', cluster_list[-1],  ' from current channel.')
+                cluster_list = cluster_list[:-1]
+                SUCCESS_INDICATOR_DC = False
+                continue
+
 
         '''
         print individual user's power
         '''
         print('Power allocation (DC):')
-        for i in range(n_cluster_optimizer):
-            print('Cluster %d: Power = %.2f mW' % (cluster_list[i],power_alloc_DC[i][0]))
-            print('{} mW'.format(power_alloc_DC[i][0]))
+        if len(cluster_list) > 0:
+            for i in range(n_cluster_optimizer):
+                print('Cluster %d: Power = %.2f mW' % (cluster_list[i],power_alloc_DC[i][0]))
 
         idx_ch += 1
 
