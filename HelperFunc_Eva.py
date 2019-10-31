@@ -46,3 +46,21 @@ def cal_CP_simulate(cluster, channel_gain, power_alloc, SNR_gap, sigma, R_min, n
     coverage_prob = Success_count / Total_number_of_test
     network_capacity = Network_capacity_sum / Total_number_of_test
     return coverage_prob, network_capacity
+
+def translate_from_std_output(out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, cluster_ID):
+    total_num_cluster = len(cluster_ID)
+    power_allocation = np.zeros(total_num_cluster)
+    channel_allocation=[]
+    channel_groups=[]
+    first_channel_set=[]
+    cluster_index = [cluster_ID.index(element) for element in out_cluster_IDs]
+    for i in range(len(cluster_index)):
+        first_channel = out_1st_channel_idx[i]
+        if not first_channel in first_channel_set:
+            first_channel_set.append(first_channel)
+            channel_groups.append(list(range(first_channel,first_channel+out_num_channels[i])))
+            channel_allocation.append([])
+        channel_idx = first_channel_set.index(first_channel)
+        channel_allocation[channel_idx].append([cluster_index[i]])
+    power_allocation[cluster_index] = out_power
+    return channel_allocation, channel_groups, power_allocation

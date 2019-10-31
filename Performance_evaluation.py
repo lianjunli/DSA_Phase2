@@ -1,8 +1,12 @@
-from HelperFunc_Eva import cal_CP_simulate
+from HelperFunc_Eva import cal_CP_simulate, translate_from_std_output
 import os
 import numpy as np
 
-def performance_evaluation(channel_allocation, channel_groups, power_allocation, h_all, noise_vec, Log_Normal_sigma, n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth):
+def performance_evaluation(cluster_IDs, first_channel_idx, num_channels, power, cluster_ID,
+                           h_all, noise_vec, Log_Normal_sigma, n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth):
+    channel_allocation, channel_groups, power_allocation = \
+        translate_from_std_output(cluster_IDs, first_channel_idx, num_channels, power, cluster_ID)
+
     # Initialize the parameters
     CP_simulation = np.zeros(n_cluster)
     capacity_simulation = np.zeros(n_cluster)

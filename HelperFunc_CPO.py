@@ -157,7 +157,7 @@ def diff_in_throughput(i_UE, i_CG, channel_cluster0, noise_mat, SNR_gap, QoS, cg
 
     return is_feasible, sum_rate - sum_rate0
 
-def translate_to_std_output(channel_allocation, channel_groups, cluster_ID, power_allocation):
+def translate_to_std_output(channel_allocation, channel_groups, cluster_ID, power_allocation, sort_output = False):
     out_cluster_IDs=[]
     out_1st_channel_idx=[]
     out_num_channels=[]
@@ -169,4 +169,12 @@ def translate_to_std_output(channel_allocation, channel_groups, cluster_ID, powe
             out_1st_channel_idx.append(channel_groups[i][0])
             out_num_channels.append(len(channel_groups[i]))
             out_power.append(power_allocation[cluster])
+
+    if sort_output:
+        idx = sorted(range(len(out_cluster_IDs)), key=lambda k: out_cluster_IDs[k])
+        out_cluster_IDs = [out_cluster_IDs[i] for i in idx]
+        out_1st_channel_idx = [out_1st_channel_idx[i] for i in idx]
+        out_num_channels = [out_num_channels[i] for i in idx]
+        out_power = [out_power[i] for i in idx]
     return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power
+

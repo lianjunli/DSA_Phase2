@@ -199,7 +199,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
     out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power = translate_to_std_output(channel_alloc_type1,
                                                                                                 cg.channel_groups,
                                                                                                 cluster_ID,
-                                                                                                power_alloc_DC_record)
+                                                                                                power_alloc_DC_record,
+                                                                                                sort_output=True)
 
-
-    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, channel_alloc_type1, cg.channel_groups, power_alloc_DC_record, noise_vec
+    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, noise_vec

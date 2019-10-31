@@ -60,20 +60,19 @@ h_mean, h_min, h_std_dB, h_all, h_all_dB, noise_mat \
     = environment_simulation(channel_IDs, n_cluster, n_user_cluster, area)
 
 # channel allocation and power allocation
-out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, \
-channel_allocation, channel_groups, power_allocation, noise_vec \
+cluster_IDs, first_channel_idx, num_channels, power, SUCCESS_INDICATOR, noise_vec \
     = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type,
           SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth)
 
 print('\n** CPO Outputs:')
-print('Cluster ID', out_cluster_IDs)
-print('Assigned first channel index', out_1st_channel_idx)
-print('Number of channels assigned', out_num_channels)
-print('Transmit power', [ round(elem, 2) for elem in out_power])
+print('Cluster ID', cluster_IDs)
+print('Assigned first channel index', first_channel_idx)
+print('Number of channels assigned', num_channels)
+print('Transmit power', [ round(elem, 2) for elem in power])
 print ('Success indicator ', SUCCESS_INDICATOR)
 
 # performance evaluation
 print('\n** Evaluation start...')
-performance_evaluation(channel_allocation, channel_groups, power_allocation, h_all, noise_vec, Log_Normal_sigma,
+performance_evaluation(cluster_IDs, first_channel_idx, num_channels, power, cluster_ID, h_all, noise_vec, Log_Normal_sigma,
                        n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth)
 
