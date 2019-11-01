@@ -60,11 +60,12 @@ h_mean, h_min, h_std_dB, h_all, h_all_dB, noise_mat \
     = environment_simulation(channel_IDs, n_cluster, n_user_cluster, area)
 
 # channel allocation and power allocation
-cluster_IDs, first_channel_idx, num_channels, power, SUCCESS_INDICATOR, noise_vec \
+cluster_IDs, first_channel_idx, num_channels, power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs \
     = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type,
           SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth)
 
 print('\n** CPO Outputs:')
+print('Clusters cannot be assigned:', cluster_infeasible_IDs)
 print('Cluster ID', cluster_IDs)
 print('Assigned first channel index', first_channel_idx)
 print('Number of channels assigned', num_channels)

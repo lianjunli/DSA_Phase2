@@ -43,6 +43,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
         else:
             cg.split()
     channel_alloc_type1, cluster_wo_feasible_ch, SUCCESS_INDICATOR_CA = CA_type1(n_cluster, h_mean, h_min, cg, minRate_intra_gain_type, SU_power[0], noise_mat, SNR_gap, QoS[0])
+    cluster_infeasible_IDs = [cluster_ID[element] for element in cluster_wo_feasible_ch]
 
     if SUCCESS_INDICATOR_CA == False:
         print('Channel allocation failed to accommodate all clusters.')
@@ -202,4 +203,4 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                                                                 power_alloc_DC_record,
                                                                                                 sort_output=True)
 
-    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, noise_vec
+    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs
