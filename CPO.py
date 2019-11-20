@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-from Channel_Allocation_Phase2 import CA_type1
+from Channel_Allocation import CA_type1
 from Channel_Grouping import ChannelGrouping
 from Power_allocation import PA_GP_MCS_minRate
 from DC_MCS_minRate_channelCap import PA_DC_MCS_minRate_channelCap
