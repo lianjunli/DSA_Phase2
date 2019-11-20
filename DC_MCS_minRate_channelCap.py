@@ -2,7 +2,7 @@ import numpy as np
 import copy
 import networkx as nx
 from itertools import combinations
-from HelperFunc_MCS import *
+from HelperFunc_CPO import objective_value_SU, capacity_SU, objective_value
 import time
 import cdd
 import os
@@ -18,12 +18,12 @@ This is the method of
 
 class PA_DC_MCS_minRate_channelCap:
 
-    def __init__(self, power_alloc, channel_alloc, channel_gain, env, priority, SU_power,
+    def __init__(self, power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
                  minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order, channel_gain_minR):
         self.power_alloc = copy.deepcopy(power_alloc)
         self.Succeed = False
         self.capacity_SU = np.zeros(power_alloc.shape[0])
-        self.power_allocation(power_alloc, channel_alloc, channel_gain, env, priority, SU_power,
+        self.power_allocation(power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
                               minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order,channel_gain_minR)
 
 
@@ -38,15 +38,15 @@ class PA_DC_MCS_minRate_channelCap:
                     index = [i, j]
         return index
 
-    def A(self, n, m, power_alloc, channel_alloc, channel_gain, env, SNR_gap):
+    def A(self, n, m, power_alloc, channel_alloc, channel_gain, noise_vec, SNR_gap):
         n_su = power_alloc.shape[0]
         inter_sum = 0
         for j in range(n_su):
             if (j != n):
                 inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[n, j] * power_alloc[j, m]
-        return channel_gain[n, n] / SNR_gap[n] / (inter_sum + env.NoisePower[n])
+        return channel_gain[n, n] / SNR_gap[n] / (inter_sum + noise_vec[n])
 
-    def region_minRate(self, SU_index, gradient, minRate, power_alloc, channel_alloc, channel_gain, env, SNR_gap):
+    def region_minRate(self, SU_index, gradient, minRate, power_alloc, channel_alloc, channel_gain, B, noise_vec, SNR_gap):
         n_channel = power_alloc.shape[1]
         p_dim = int(np.sum(channel_alloc[SU_index, :]))
 
@@ -56,11 +56,11 @@ class PA_DC_MCS_minRate_channelCap:
             gradient = - gradient
 
         denominator = np.sum(channel_alloc[SU_index, :])
-        numerator = - minRate[SU_index] / env.B
+        numerator = - minRate[SU_index] / B
         index = 0
         for m in range(n_channel):
             if (channel_alloc[SU_index, m] == 1):
-                a = self.A(SU_index, m, power_alloc, channel_alloc, channel_gain, env, SNR_gap)
+                a = self.A(SU_index, m, power_alloc, channel_alloc, channel_gain, noise_vec, SNR_gap)
                 numerator = numerator + np.log2(a/gradient[index])
                 index = index + 1
 
@@ -70,7 +70,7 @@ class PA_DC_MCS_minRate_channelCap:
         index = 0
         for m in range(n_channel):
             if (channel_alloc[SU_index, m] == 1):
-                a = self.A(SU_index, m, power_alloc, channel_alloc, channel_gain, env, SNR_gap)
+                a = self.A(SU_index, m, power_alloc, channel_alloc, channel_gain, noise_vec, SNR_gap)
                 p[index] = (a - k*gradient[index]) / (a*k*gradient[index])
                 index = index + 1
 
@@ -78,8 +78,8 @@ class PA_DC_MCS_minRate_channelCap:
         index = 0
         for m in range(n_channel):
             if (channel_alloc[SU_index, m] == 1):
-                a = self.A(SU_index, m, power_alloc, channel_alloc, channel_gain, env, SNR_gap)
-                capacity = capacity + env.B*np.log2(1+a*p[index])
+                a = self.A(SU_index, m, power_alloc, channel_alloc, channel_gain, noise_vec, SNR_gap)
+                capacity = capacity + B*np.log2(1+a*p[index])
 
                 index = index + 1
 
@@ -87,7 +87,7 @@ class PA_DC_MCS_minRate_channelCap:
 
         return gradient, z, p
 
-    def QAM_region(self, SU_index, power_alloc, channel_alloc, channel_gain, env, SNR_gap, QAM_cap):
+    def QAM_region(self, SU_index, power_alloc, channel_alloc, channel_gain, noise_vec, SNR_gap, QAM_cap):
 
         n = SU_index
         n_su = power_alloc.shape[0]
@@ -99,19 +99,20 @@ class PA_DC_MCS_minRate_channelCap:
             for j in range(n_su):
                 if (j != n):
                     inter_sum = inter_sum + channel_alloc[j, m] * channel_gain[n, j] * power_alloc[j, m]
-            QAM_max_power[m] = (2**(QAM_cap[n]+1) - 1) * (inter_sum + env.NoisePower[n]) * (SNR_gap[n] / channel_gain[n, n])
+            QAM_max_power[m] = (2**(QAM_cap[n]+1) - 1) * (inter_sum + noise_vec[n]) * (SNR_gap[n] / channel_gain[n, n])
 
         return QAM_max_power
 
 
-    def power_allocation(self, power_alloc, channel_alloc, channel_gain, env, priority, SU_power,
+    def power_allocation(self, power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
                          minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order,channel_gain_minR):
 
         n_su = power_alloc.shape[0]
         n_channel = power_alloc.shape[1]
-        self.epsilon = 0.1
+        self.epsilon = 0.01
         self.n_search_node_total = 0
 
+        tic = time.time()
         while (True):
             previous_power_alloc = copy.deepcopy(power_alloc)
             # When the user update restarts, initialize SU_max_power
@@ -123,7 +124,7 @@ class PA_DC_MCS_minRate_channelCap:
                 if (np.sum(channel_alloc[n, :]) == 0):
                     power_alloc[n, :] = 0
                     objective_list['total'].append(
-                        objective_value(channel_alloc, power_alloc, priority, channel_gain, env, SNR_gap))
+                        objective_value(channel_alloc, power_alloc, priority, channel_gain, B, noise_vec, SNR_gap))
                     continue
 
                 '''
@@ -142,7 +143,7 @@ class PA_DC_MCS_minRate_channelCap:
                     tmp_channel_alloc[n, channel_index_comb[index_iter]] = 1
 
                     # Add QAM capacity constraint for user n
-                    self.QAM_max_power = self.QAM_region(n, power_alloc, tmp_channel_alloc, channel_gain, env, SNR_gap,
+                    self.QAM_max_power = self.QAM_region(n, power_alloc, tmp_channel_alloc, channel_gain, noise_vec, SNR_gap,
                                                          QAM_cap)
 
                     # Add minimum data rate constraint for user n
@@ -151,7 +152,7 @@ class PA_DC_MCS_minRate_channelCap:
                     self.minRate_b = np.zeros(1)
                     gradient = np.ones(tmp_p_dim)
                     h, b, p = self.region_minRate(n, gradient, minRate, power_alloc, tmp_channel_alloc, channel_gain_minR,
-                                                  env, SNR_gap)
+                                                  B, noise_vec, SNR_gap)
                     self.minRate_h[0, :] = -h
                     self.minRate_b[0] = -b
 
@@ -163,7 +164,7 @@ class PA_DC_MCS_minRate_channelCap:
 
                         # Update the power of user n using DC programming (when a solution is found,
                         # self.power_alloc will be updated)
-                        self.power_allocation_single_user(power_alloc, tmp_channel_alloc, channel_gain, env, priority, SNR_gap, n)
+                        self.power_allocation_single_user(power_alloc, tmp_channel_alloc, channel_gain, B, noise_vec, priority, SNR_gap, n)
                         power_alloc_comb[index_iter] = copy.deepcopy(self.power_alloc)
 
 
@@ -171,26 +172,27 @@ class PA_DC_MCS_minRate_channelCap:
                         Check if user n meets the minimum data rate requirements
                         '''
                         self.capacity_SU[n] = capacity_SU(self.power_alloc[n, :], n, tmp_channel_alloc, self.power_alloc,
-                                                          priority, channel_gain_minR, env, SNR_gap)
+                                                          priority, channel_gain_minR, B, noise_vec, SNR_gap)
                         capacity_comb[index_iter] = self.capacity_SU[n]
 
                         if (self.capacity_SU[n] * (10**6) < minRate[n]):
                             # check if the user is possible to meet the minimum data rate
                             if(self.SU_max_power[n] < np.amin(self.minRate_b[-1] / self.minRate_h[-1, :])):
                                 # print('The required data rate cannot be satisfied')
-                                os._exit(0)
+                                # os._exit(0)
+                                return
 
                             # user n doesn't meet minimum data rate
                             gradient = np.zeros(tmp_p_dim)
                             grad_index = 0
                             for m in range(n_channel):
                                 if (tmp_channel_alloc[n, m]==1):
-                                    a = self.A(n, m, self.power_alloc, tmp_channel_alloc, channel_gain_minR, env, SNR_gap)
+                                    a = self.A(n, m, self.power_alloc, tmp_channel_alloc, channel_gain_minR, noise_vec, SNR_gap)
                                     gradient[grad_index] = a/(1+a*self.power_alloc[n, m])
                                     grad_index = grad_index + 1
 
                             h, b, p = self.region_minRate(n, gradient, minRate, self.power_alloc, tmp_channel_alloc,
-                                                          channel_gain_minR, env, SNR_gap)
+                                                          channel_gain_minR, B, noise_vec, SNR_gap)
 
                             if ((minRate[n] - self.capacity_SU[n]* (10 ** 6)) / minRate[n] < 0.01):
                                 # The difference with minimum data rate is within a threshold
@@ -198,7 +200,7 @@ class PA_DC_MCS_minRate_channelCap:
                                 tmp_p[np.where(tmp_channel_alloc[n,:]==1)] = p
                                 self.power_alloc[n, :] = tmp_p
                                 self.capacity_SU[n] = capacity_SU(self.power_alloc[n, :], n, tmp_channel_alloc,
-                                                                  self.power_alloc, priority, channel_gain_minR, env, SNR_gap)
+                                                                  self.power_alloc, priority, channel_gain_minR, B, noise_vec, SNR_gap)
                                 capacity_comb[index_iter] = self.capacity_SU[n]
                             else:
                                 # Add more linear constraints to upper bound the convex set
@@ -214,7 +216,7 @@ class PA_DC_MCS_minRate_channelCap:
                         for j in range(n_su):
                             if (j != n and np.sum(channel_alloc[j, :]) > 0):
                                 gradient = np.ones(int(np.sum(channel_alloc[j, :])))
-                                h, b, p = self.region_minRate(j, gradient, minRate, self.power_alloc, tmp_channel_alloc, channel_gain_minR, env, SNR_gap)
+                                h, b, p = self.region_minRate(j, gradient, minRate, self.power_alloc, tmp_channel_alloc, channel_gain_minR, B, noise_vec, SNR_gap)
                                 # Impossible to find user j's power allocation to let user j's minRate is satisfied
                                 if ( b > SU_power[j] ):
                                     unsatisfied_user[j] = 1
@@ -239,17 +241,24 @@ class PA_DC_MCS_minRate_channelCap:
                 self.power_alloc[n, :] = power_alloc_comb[max_capacity_index][n, :]
                 power_alloc[n, :] = power_alloc_comb[max_capacity_index][n, :]
                 objective_list['total'].append(
-                    objective_value(channel_alloc, power_alloc, priority, channel_gain, env, SNR_gap))
+                    objective_value(channel_alloc, power_alloc, priority, channel_gain, B, noise_vec, SNR_gap))
 
 
+            toc = time.time()
+            if (toc-tic) > 5:
+                # print('iteration converge timeout')
+                self.Succeed = True # found solution
+                self.power_alloc = self.power_alloc * SU_power[0] / np.max(self.power_alloc)
+                break
 
-            if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 1):
+            if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 1 ):
                 # print('power allocation is updated')
                 # print('number of search nodes = %d' % self.n_search_node_total)
                 self.Succeed = True # found solution
+                self.power_alloc = self.power_alloc * SU_power[0] / np.max(self.power_alloc)
                 break
 
-    def power_allocation_single_user(self, power_alloc, channel_alloc, channel_gain, env,
+    def power_allocation_single_user(self, power_alloc, channel_alloc, channel_gain, B, noise_vec,
                                      priority, SNR_gap, SU_index):
 
         n = SU_index
@@ -281,7 +290,7 @@ class PA_DC_MCS_minRate_channelCap:
         n_search_node = 0
         tic = time.clock()
         while (True):
-            if len(queue) == 0 or n_search_node > 1000: # make sure DC won't search forever
+            if len(queue) == 0 or n_search_node > 5000: # make sure DC won't search forever
                 # print(objective_value_SU(
                 #     power_alloc[n, :], n, channel_alloc, power_alloc, priority, channel_gain, env, SNR_gap))
                 # print(self.lowerbound_global)
@@ -305,7 +314,7 @@ class PA_DC_MCS_minRate_channelCap:
 
             # Calculate the upperbound and power_ub
             G.node[node_index]['power_ub'], G.node[node_index]['upperbound'] = \
-                self.upperbound(G.node[node_index], power_alloc, channel_alloc, channel_gain, env, priority, n, SNR_gap)
+                self.upperbound(G.node[node_index], power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, n, SNR_gap)
 
             # Update the vertex_lb
             G.node[node_index]['vertex_lb'] = []
@@ -323,7 +332,7 @@ class PA_DC_MCS_minRate_channelCap:
             # Calculate the lowerbound and power_lb
             if (len(G.node[node_index]['vertex_lb']) > 0):
                 G.node[node_index]['power_lb'], G.node[node_index]['lowerbound'] = \
-                    self.lowerbound(G.node[node_index], power_alloc, channel_alloc, channel_gain, env, priority, n,
+                    self.lowerbound(G.node[node_index], power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, n,
                                     SNR_gap)
             else:
                 G.node[node_index]['lowerbound'] = -float("inf")
@@ -376,7 +385,7 @@ class PA_DC_MCS_minRate_channelCap:
             queue.append(G.node[node_index1])
             queue.append(G.node[node_index2])
 
-    def upperbound(self, Node, power_alloc, channel_alloc, channel_gain, env, priority, SU_index, SNR_gap):
+    def upperbound(self, Node, power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_index, SNR_gap):
 
         vertex_list = Node['vertex']
         vertex_total = Node['vertex_total']
@@ -413,25 +422,25 @@ class PA_DC_MCS_minRate_channelCap:
         def f(p):
             sum = 0
             for m in range(n_channel):
-                sum = sum + channel_alloc[n, m] * priority[n] * env.B / (10 ** 6) \
-                      * np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (C[m] + env.NoisePower[n]))
+                sum = sum + channel_alloc[n, m] * priority[n] * B / (10 ** 6) \
+                      * np.log2(1 + channel_gain[n, n] / SNR_gap[n] * p[m] / (C[m] + noise_vec[n]))
             for k in range(n_su):
                 if (k != n):
                     for m in range(n_channel):
-                        sum = sum + channel_alloc[k, m] * priority[k] * env.B / (10 ** 6) \
-                              * np.log2(E[k, m] + env.NoisePower[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
+                        sum = sum + channel_alloc[k, m] * priority[k] * B / (10 ** 6) \
+                              * np.log2(E[k, m] + noise_vec[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
             return sum
 
         def df(p):
             df = np.zeros(n_channel)
             for m in range(n_channel):
-                df[m] = df[m] + channel_alloc[n, m] * priority[n] * env.B / (10 ** 6) / np.log(2) * channel_gain[n, n] \
-                        / SNR_gap[n] / (C[m] + env.NoisePower[n] + channel_gain[n, n] / SNR_gap[n] * p[m])
+                df[m] = df[m] + channel_alloc[n, m] * priority[n] * B / (10 ** 6) / np.log(2) * channel_gain[n, n] \
+                        / SNR_gap[n] / (C[m] + noise_vec[n] + channel_gain[n, n] / SNR_gap[n] * p[m])
                 for k in range(n_su):
                     if (k != n):
-                        df[m] = df[m] + channel_alloc[k, m] * priority[k] * env.B / (10 ** 6) / np.log(2) * \
+                        df[m] = df[m] + channel_alloc[k, m] * priority[k] * B / (10 ** 6) / np.log(2) * \
                                 channel_alloc[n, m] * channel_gain[k, n] \
-                                / (E[k, m] + env.NoisePower[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
+                                / (E[k, m] + noise_vec[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
             return df
 
         def g(p, low_dim=False):
@@ -448,8 +457,8 @@ class PA_DC_MCS_minRate_channelCap:
             for k in range(n_su):
                 if (k != n):
                     for m in range(n_channel):
-                        sum = sum + channel_alloc[k, m] * priority[k] * env.B / (10 ** 6) \
-                              * np.log2(D[k, m] + env.NoisePower[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
+                        sum = sum + channel_alloc[k, m] * priority[k] * B / (10 ** 6) \
+                              * np.log2(D[k, m] + noise_vec[k] + channel_alloc[n, m] * channel_gain[k, n] * p[m])
             return sum
 
         def finite_power_solver(vertex_list, vertex_total):
@@ -528,7 +537,8 @@ class PA_DC_MCS_minRate_channelCap:
 
             if (vertices_array.size == 0):
                 # print("Cannot find a feasible solution!")
-                os._exit()
+                return
+                # os._exit()
 
             upperbound_max = -float("inf")
             p_sol_lowd = np.zeros(p_dim)
@@ -603,13 +613,13 @@ class PA_DC_MCS_minRate_channelCap:
 
         return p_sol, upperbound
 
-    def lowerbound(self, Node, power_alloc, channel_alloc, channel_gain, env, priority, SU_index, SNR_gap):
+    def lowerbound(self, Node, power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_index, SNR_gap):
 
         vertex_lb = Node['vertex_lb']
 
         max_capacity = 0
         for p in vertex_lb:
-            capacity = objective_value_SU(p, SU_index, channel_alloc, power_alloc, priority, channel_gain, env, SNR_gap)
+            capacity = objective_value_SU(p, SU_index, channel_alloc, power_alloc, priority, channel_gain, B, noise_vec, SNR_gap)
             if (capacity > max_capacity):
                 max_p = copy.deepcopy(p)
                 max_capacity = capacity
