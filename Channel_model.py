@@ -6,6 +6,7 @@ import math
 '''
 The required scenario Optimizer
 '''
+
 class Winner2_Optimizer():
     def __init__(
             self,
@@ -13,7 +14,8 @@ class Winner2_Optimizer():
             n_cluster,
             n_user_cluster,
             # B,
-            area
+            area,
+            random_seed,
     ):
         self.n_channel = n_channel
         self.n_cluster = n_cluster
@@ -32,7 +34,7 @@ class Winner2_Optimizer():
         # Set the path loss model exponent
         self.exponent = 36.8
 
-        self.random_seed = 12  #12, 21
+        self.random_seed = random_seed  #12, 21
         np.random.seed(self.random_seed)
 
         #self._build_location_asymmetric()
@@ -138,8 +140,8 @@ class Winner2_Optimizer():
         plt.xlabel('x', fontsize=14)
         plt.show()
 
-    def channel_gain(self, cluster_list, interfer='average'):
-
+    def channel_gain(self, cluster_list, sigma, interfer='average'):
+        np.random.seed(100)
         n_cluster = len(cluster_list)
         channel_gain_mean = np.zeros((n_cluster, n_cluster))
         channel_gain_min = np.zeros((n_cluster, n_cluster))
@@ -150,6 +152,8 @@ class Winner2_Optimizer():
         '''
         h_all = np.zeros((n_cluster * self.n_user_cluster, n_cluster * self.n_user_cluster))
         h_all_dB = np.zeros((n_cluster * self.n_user_cluster, n_cluster * self.n_user_cluster))
+
+        h_all_dB_1 = np.zeros((n_cluster * self.n_user_cluster, n_cluster * self.n_user_cluster))
 
         for tx in range(n_cluster * self.n_user_cluster):
             for rx in range(n_cluster * self.n_user_cluster):
@@ -162,32 +166,45 @@ class Winner2_Optimizer():
                                  self.user_x[rx_cluster][rx % self.n_user_cluster]) ** 2 +
                                 (self.user_y[tx_cluster][tx % self.n_user_cluster] -
                                  self.user_y[rx_cluster][rx % self.n_user_cluster]) ** 2)
-                    h_all[tx, rx] = np.float_power(10, -((self._PLdB(d)) / 10))
-                    h_all_dB[tx, rx] = -self._PLdB(d)
+                    # h_all[tx, rx] = np.float_power(10, -((self._PLdB(d) + np.random.normal(0, sigma, 1)) / 10))
+
+                    # shadow = []
+                    # for i_sigma in 100:
+                    #     shadow.append(np.random.normal(0, sigma, 1))
+                    # h_all_dB[tx, rx] = -self._PLdB(d) - np.mean(shadow)
+                    h_all_dB[tx, rx] = -self._PLdB(d) - np.random.normal(0, sigma, 1)
+                    h_all_dB_1[tx, rx] = -self._PLdB(d)
+        h_all = np.float_power(10, h_all_dB/10)
 
 
         for c1 in range(len(cluster_list)):
             '''
             Calculate the desired channel gain
             '''
-            h_dB = []
+            # h_dB = []
             cluster = cluster_list[c1]
-            for tx in range(self.n_user_cluster):
-                for rx in range(tx + 1, self.n_user_cluster):
-                    d = np.sqrt((self.user_x[cluster][tx] - self.user_x[cluster][rx])**2 +
-                                (self.user_y[cluster][tx] - self.user_y[cluster][rx])**2)
-                    h_dB.append(-self._PLdB(d))
-            h_dB = np.sort(h_dB)
-            h_lin = np.float_power(10, h_dB/10)
-            h_mean_harmonic = len(h_lin)/np.sum(1/h_lin)
-            h_mean_dB = sum(h_dB) / len(h_dB)
+            # for tx in range(self.n_user_cluster):
+            #     for rx in range(tx + 1, self.n_user_cluster):
+            #         d = np.sqrt((self.user_x[cluster][tx] - self.user_x[cluster][rx])**2 +
+            #                     (self.user_y[cluster][tx] - self.user_y[cluster][rx])**2)
+            #         h_dB.append(-self._PLdB(d))
+
+            h_dB_cluster = h_all_dB[cluster * self.n_user_cluster : (cluster+1)* self.n_user_cluster, cluster * self.n_user_cluster : (cluster+1)* self.n_user_cluster]
+            h_dB_cluster_1 = h_all_dB_1[cluster * self.n_user_cluster: (cluster + 1) * self.n_user_cluster,
+                           cluster * self.n_user_cluster: (cluster + 1) * self.n_user_cluster]
+
+            # h_dB = np.sort(h_dB)
+            # h_lin = np.float_power(10, h_dB/10)
+            # h_mean_harmonic = len(h_lin)/np.sum(1/h_lin)
+            h_mean_dB = np.sum(h_dB_cluster) / (self.n_user_cluster**2 - self.n_user_cluster)
             h_mean = np.float_power(10, h_mean_dB/10)
-            h_min_dB = min(h_dB)
+            h_min_dB = np.min(h_dB_cluster)
+            h_min_dB_1 = np.min(h_dB_cluster_1)
             h_min = np.float_power(10, h_min_dB/10)
-            h_std_dB = statistics.stdev(h_dB)
+            # h_std_dB = statistics.stdev(h_dB)
             channel_gain_mean[c1, c1] = h_mean
             channel_gain_min[c1, c1] = h_min
-            channel_gain_std_dB[c1] = h_std_dB
+            # channel_gain_std_dB[c1] = h_std_dB
 
             '''
             Calculate the interfered channel gain
@@ -196,15 +213,17 @@ class Winner2_Optimizer():
                 if (c2 == c1):
                     continue
                 cluster_inter = cluster_list[c2]
-                h_dB = []
-                for tx in range(self.n_user_cluster):
-                    for rx in range(self.n_user_cluster):
-                        d = np.sqrt((self.user_x[cluster_inter][tx] - self.user_x[cluster][rx]) ** 2 +
-                                    (self.user_y[cluster_inter][tx] - self.user_y[cluster][rx]) ** 2)
-                        h_dB.append(-self._PLdB(d))
+                # h_dB = []
+                # for tx in range(self.n_user_cluster):
+                #     for rx in range(self.n_user_cluster):
+                #         d = np.sqrt((self.user_x[cluster_inter][tx] - self.user_x[cluster][rx]) ** 2 +
+                #                     (self.user_y[cluster_inter][tx] - self.user_y[cluster][rx]) ** 2)
+                #         h_dB.append(-self._PLdB(d))
+                h_dB_cluster_inter = h_all_dB[cluster * self.n_user_cluster: (cluster + 1) * self.n_user_cluster,
+                               cluster_inter * self.n_user_cluster: (cluster_inter + 1) * self.n_user_cluster]
 
                 if (interfer == 'average'):
-                    h_mean_dB = sum(h_dB)/len(h_dB)
+                    h_mean_dB = np.sum(h_dB_cluster_inter) / (self.n_user_cluster**2)
                     channel_gain_mean[c1, c2] = np.float_power(10, h_mean_dB / 10)
                     channel_gain_min[c1, c2] = np.float_power(10, h_mean_dB / 10)
                 elif (interfer == 'max'):
@@ -357,7 +376,7 @@ class Winner2_LGS():
             self.SU_x_type1 = SU_x
             self.SU_y_type1 = SU_y
             self.group_dis_type1 = group_dis
-            self._plot_SU_location(1)
+            # self._plot_SU_location(1)
 
         elif (type_index == 2):
             self.group_y_type2 = group_y
@@ -365,7 +384,7 @@ class Winner2_LGS():
             self.SU_x_type2 = SU_x
             self.SU_y_type2 = SU_y
             self.group_dis_type2 = group_dis
-            self._plot_SU_location(2)
+            # self._plot_SU_location(2)
 
 
     def _plot_SU_location(self, type_index):

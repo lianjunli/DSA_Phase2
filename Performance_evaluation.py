@@ -1,7 +1,7 @@
 from HelperFunc_Eva import cal_CP_simulate, translate_from_std_output
 import os
 import numpy as np
-
+np.set_printoptions(linewidth=300)
 def performance_evaluation(cluster_IDs, first_channel_idx, num_channels, power, cluster_ID,
                            h_all, noise_vec, Log_Normal_sigma, n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth):
     channel_allocation, channel_groups, power_allocation = \
@@ -16,7 +16,7 @@ def performance_evaluation(cluster_IDs, first_channel_idx, num_channels, power, 
     idx_ch = 0
     for c1 in channel_allocation:
 
-        print('\n* Channel {0} with clusters: {1}'.format(idx_ch + 1, c1))
+        print('\n* Channel with clusters: {0}'.format(c1))
 
         B = len(channel_groups[idx_ch]) *unit_bandwidth*10**6
 
@@ -53,6 +53,15 @@ def performance_evaluation(cluster_IDs, first_channel_idx, num_channels, power, 
 
         idx_ch += 1
 
+    # print('Average coverage probability: ', np.mean(CP_simulation[np.nonzero(CP_simulation)]))
+    # print('Min coverage probability: ', np.min(CP_simulation[np.nonzero(CP_simulation)]))
+    # print('Total Network capacity: ', np.sum(capacity_simulation[np.nonzero(capacity_simulation)]))
+    print('Average coverage probability: ', np.mean(CP_simulation))
+    print('Min coverage probability: ', np.min(CP_simulation))
+    print('Total Network capacity: ', np.sum(capacity_simulation))
+    print('Min Network capacity: ', np.min(capacity_simulation))
+    print('coverage per cluster', CP_simulation)
+    print('capacity per cluster', capacity_simulation)
     file_path = '.\\saved_results\\'
     if not os.path.exists(file_path):
         os.makedirs(file_path)
