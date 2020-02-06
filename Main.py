@@ -10,7 +10,7 @@ n_cluster_set = range(10,101,10)
 
 n_round = 10
 
-result = np.zeros((len(n_cluster_set), n_round, 6))
+result = np.zeros((len(n_cluster_set), n_round, 7))
 
 for i in range(len(n_cluster_set)):
     for j in range(n_round):
@@ -76,11 +76,11 @@ for i in range(len(n_cluster_set)):
 
         # channel allocation and power allocation
         cluster_IDs, first_channel_idx, num_channels, power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs, power_GA, \
-        GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, GA_converge_i\
+        GA_converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round\
             = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type,
                   SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth)
 
-        result[i,j,:] = [GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, GA_converge_i]
+        result[i,j,:] = [GA_converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round]
 
         # print('\n** CPO Outputs:')
         # print('Clusters cannot be assigned:', cluster_infeasible_IDs)

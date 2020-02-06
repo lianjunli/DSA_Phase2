@@ -212,9 +212,15 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             DC_time = time.time() - start
             # print('DC time cost:', DC_time)
             SUCCESS_INDICATOR_temp = power_engine.Succeed
+
+            power_alloc_DC_round=np.round(power_alloc_DC, decimals=-1)
+
             if SUCCESS_INDICATOR_temp:
                 power_alloc_DC_record[cluster_list] = power_alloc_DC.reshape(n_cluster_optimizer)
                 total_rate_after_DC = objective_value(channel_alloc_optimizer, power_alloc_DC,
+                                priority_optimizer, h_DC, B, noise_vec_cg,
+                                SNR_gap_optimizer)
+                total_rate_after_DC_round = objective_value(channel_alloc_optimizer, power_alloc_DC_round,
                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                 SNR_gap_optimizer)
                 # print('total rate after DC:', total_rate_after_DC)
@@ -263,4 +269,4 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                     power_alloc_GA_record,
                                                     sort_output=True)
 
-    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs, out_power_GA, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, converge_i
+    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs, out_power_GA, converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round
