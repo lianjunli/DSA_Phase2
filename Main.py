@@ -2,13 +2,13 @@ from Environment_simulation import environment_simulation
 from CPO import CPO
 from Performance_evaluation import performance_evaluation
 import numpy as np
-from tqdm import tqdm
+
 
 # The total number of clusters
 # n_cluster_set = [10, 20, 30, 40, 50]
-n_cluster_set = [10]
+n_cluster_set = range(10,101,10)
 
-n_round = 5
+n_round = 10
 
 result = np.zeros((len(n_cluster_set), n_round, 6))
 
@@ -99,5 +99,5 @@ for i in range(len(n_cluster_set)):
         # print('\n** Evaluation with GA power allocation')
         # performance_evaluation(cluster_IDs, first_channel_idx, num_channels, power_GA, cluster_ID, h_all, noise_vec, 0,
         #                        n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth)
-np.save('.\\saved_results\\GA_power_results.npy', result)
+        np.save('.\\saved_results\\GA_power_results.npy', result)
 print('done')
