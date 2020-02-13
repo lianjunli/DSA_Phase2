@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
-from HelperFunc_CPO import diff_in_throughput
+from HelperFunc_CPO import diff_in_throughput, feasibility_and_estThroughput
 
 
 def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, noise_mat, SNR_gap, QoS, shadow_Fading_Margin):
@@ -32,7 +32,7 @@ def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, no
         maxThrougput = float("-inf")
         exist_feasible_ch = False
         for i_CG in range(n_CGs):
-            is_feasible, estThroughput, p_min_temp[i_CG], p_min_scaled_temp[i_CG] = diff_in_throughput(i_user, i_CG, CG_cluster[i_CG], noise_mat, SNR_gap, QoS, cg, maxPower, ch_gains, shadow_Fading_Margin)
+            is_feasible, estThroughput, p_min_temp[i_CG], p_min_scaled_temp[i_CG] = feasibility_and_estThroughput(i_user, i_CG, CG_cluster[i_CG], noise_mat, SNR_gap, QoS, cg, maxPower, ch_gains, shadow_Fading_Margin)
             if estThroughput > maxThrougput and is_feasible:
                 idx = i_CG
                 maxThrougput = estThroughput

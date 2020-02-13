@@ -5,12 +5,12 @@ import numpy as np
 
 
 # The total number of clusters
-n_cluster_set = [100]
+n_cluster_set = [20]
 # n_cluster_set = range(10,101,10)
 
 n_round = 1
 
-result = np.zeros((len(n_cluster_set), n_round, 7))
+result = np.zeros((len(n_cluster_set), n_round, 13))
 
 for i in range(len(n_cluster_set)):
     for j in range(n_round):
@@ -76,11 +76,13 @@ for i in range(len(n_cluster_set)):
 
         # channel allocation and power allocation
         cluster_IDs, first_channel_idx, num_channels, power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs, power_GA, \
-        GA_converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round\
-            = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type,
+        GA_converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round,GA_feasible_number,AGA_feasible_number, \
+        AGA_time, total_rate_AGA, AGA_converge_time, AGA_converge_i\
+            = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type,\
                   SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth)
 
-        result[i,j,:] = [GA_converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round]
+        result[i,j,:] = [GA_converge_i, AGA_converge_i, GA_time, AGA_time,GA_converge_time, AGA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round,\
+                         total_rate_AGA, GA_feasible_number,AGA_feasible_number]
 
         # print('\n** CPO Outputs:')
         # print('Clusters cannot be assigned:', cluster_infeasible_IDs)

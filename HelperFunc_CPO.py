@@ -80,9 +80,10 @@ def check_feasibility(h, gamma, noise_mat, cg, power, channel_cluster, i_CG):
     u = np.zeros(n_UE)
     for n in range(n_UE):
         Noise = 0
-        for i in range(len(cg.channel_groups[i_CG])):
-            Noise += noise_mat[channel_cluster[n], np.where(np.asarray(cg.channel_IDs) == cg.channel_groups[i_CG][i])[0][0]]
-        u[n] = gamma[n] / h[n, n] * Noise
+        # for i in range(len(cg.channel_groups[i_CG])):
+        #     Noise += noise_mat[channel_cluster[n], np.where(np.asarray(cg.channel_IDs) == cg.channel_groups[i_CG][i])[0][0]]
+        Noise = noise_mat[0, 0] * len(cg.channel_groups[i_CG])
+        u[n] = gamma[n] * Noise / h[n, n]
 
     spec_radius = np.max(np.abs(np.linalg.eigvals(B)))
     # print("The spectral radius is {0}".format(spec_radius))
@@ -169,6 +170,107 @@ def diff_in_throughput(i_UE, i_CG, channel_cluster0, noise_mat, SNR_gap, QoS, cg
         p_min_scaled = None
 
     return is_feasible, sum_rate - sum_rate0, p_min, p_min_scaled
+
+
+def feasibility_and_estThroughput(i_cluster, i_CG, clusters_in_CG, noise_mat, SNR_gap, QoS, cg, p_max, ch_gains, shadow_Fading_Margin):
+    bandwidth = cg.bandwidth_CGs[i_CG]
+    N0 = noise_mat[0]
+    if cg.n_channels_in_CGs[i_CG] > 1:
+        noise = 4 * N0
+    else:
+        noise = N0
+
+    ch_gains_CG = ch_gains.copy()
+    ch_gains_CG = ch_gains_CG[clusters_in_CG, :]
+    ch_gains_CG = ch_gains_CG[:, clusters_in_CG]
+    ch_gains_CG = np.asarray(ch_gains_CG)
+
+    num_clusters = len(clusters_in_CG)
+
+    sum_rate0 = 0
+    for n in range(num_clusters):
+        sum_of_ph = p_max * (np.sum(ch_gains_CG[:, n]) - ch_gains_CG[n, n])
+        sum_rate0 += bandwidth * np.log2(1 + ch_gains_CG[n, n] * p_max / SNR_gap[clusters_in_CG[n]] / (sum_of_ph + noise))
+
+    # add the new cluster into the CG
+    clusters_in_CG = clusters_in_CG.copy()
+    clusters_in_CG.append(i_cluster)
+
+    ch_gains_CG = ch_gains.copy()
+    ch_gains_CG = ch_gains_CG[clusters_in_CG, :]
+    ch_gains_CG = ch_gains_CG[:, clusters_in_CG]
+    ch_gains_CG = np.asarray(ch_gains_CG)
+
+    num_clusters = len(clusters_in_CG)
+
+    gamma = (2 ** (QoS / bandwidth) - 1) * SNR_gap[i_cluster] * (10 ** (shadow_Fading_Margin / 10)) * np.ones(num_clusters)
+
+    B = np.zeros((num_clusters, num_clusters))
+    u = np.zeros(num_clusters)
+    for n in range(num_clusters):
+        for j in range(num_clusters):
+            if n == j:
+                B[n, j] = 0
+            else:
+                B[n, j] = gamma[n] * ch_gains_CG[j, n] / ch_gains_CG[n, n]
+    for k in range(num_clusters):
+        u[k] = gamma[k] * noise / ch_gains_CG[k, k]
+
+    spec_radius = np.max(np.abs(np.linalg.eigvals(B)))
+    # print("The spectral radius is {0}".format(spec_radius))
+
+    p_min = None
+    p_min_scaled = None
+
+    if spec_radius < 1:
+        # print("Feasible minRate constraints.")
+
+        p_min = np.linalg.inv(np.identity(num_clusters) - B) @ u
+        # print("The minimum power vector is {0}".format(p_min))
+
+        if np.max(p_min) < p_max:
+            # print("Feasible power constraints.")
+            is_feasible = True
+        else:
+            # print("Infeasible power constraints.")
+            is_feasible = False
+
+        p_min_scaled = p_max / np.max(p_min) * p_min
+
+        sum_rate_min = 0
+        for k in range(num_clusters):
+            sum_of_ph = 0
+            for j in range(num_clusters):
+                if k != j:
+                    sum_of_ph += p_min[j] * ch_gains_CG[j, k]
+                else:
+                    continue
+            sum_rate_min += bandwidth * np.log2(
+                1 + ch_gains_CG[k, k] * p_min[k] / (SNR_gap[k] * (10 ** (shadow_Fading_Margin / 10))) / (
+                            sum_of_ph + noise))
+
+    else:
+        # print("Infeasible minRate constraints.")
+
+        is_feasible = False
+
+    sum_rate = 0
+    for n in range(num_clusters):
+        sum_of_ph = p_max * (np.sum(ch_gains_CG[:, n]) - ch_gains_CG[n, n])
+        sum_rate += bandwidth * np.log2(
+            1 + ch_gains_CG[n, n] * p_max / SNR_gap[clusters_in_CG[n]] / (sum_of_ph + noise))
+
+    diff_in_rate = sum_rate - sum_rate0
+
+    if is_feasible:
+        p_min = p_min[:, np.newaxis]
+        p_min_scaled = p_min_scaled[:, np.newaxis]
+    else:
+        p_min = None
+        p_min_scaled = None
+
+    return is_feasible, diff_in_rate, p_min, p_min_scaled
+
 
 def translate_to_std_output(channel_allocation, channel_groups, cluster_ID, power_allocation, sort_output = False):
     out_cluster_IDs=[]

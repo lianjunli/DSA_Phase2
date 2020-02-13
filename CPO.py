@@ -7,6 +7,7 @@ from DC_MCS_minRate_channelCap import PA_DC_MCS_minRate_channelCap
 from HelperFunc_CPO import objective_value, translate_to_std_output, capacity_SU
 import os
 from PowerAllocation_GA import PA_GA
+from PowerAllocation_AGA_new import PA_AGA
 import time
 
 def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type, SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth):
@@ -27,6 +28,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
 
     power_alloc_DC_record = np.zeros(n_cluster)
     power_alloc_GA_record = np.zeros(n_cluster)
+    power_alloc_AGA_record = np.zeros(n_cluster)
 
     # print('\n** alpha equals to {}'.format(alpha))
 
@@ -154,6 +156,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             power_alloc_GA = power_alloc_GA.reshape((-1,1))
             GA_time = time.time() - start
             GA_converge_time = GA_time * converge_i/total_i
+            GA_feasible_number = 0
             # print('GA time cost:', GA_time)
 
             # print('Power allocation (GA):')
@@ -162,13 +165,45 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                     rate = capacity_SU(power_alloc_GA[i], i, channel_alloc_optimizer, power_alloc_GA,
                                     priority_optimizer, h_DC, B, noise_vec_cg,
                                     SNR_gap_optimizer)
-                    # print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i],power_alloc_GA[i][0],rate))
+                    if rate*10**6 >= QoS_optimizer[i]:
+                        GA_feasible_number+=1
+                    print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i],power_alloc_GA[i][0],rate))
 
             total_rate_GA = objective_value(channel_alloc_optimizer, power_alloc_GA,
                                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                                 SNR_gap_optimizer)
-            # print('Total rate with GA', total_rate_GA)
+            print('Total rate with GA', total_rate_GA)
 
+            '''
+            Aternative Genetic Algorithm
+            '''
+            # Use the initialized channel allocation
+            start = time.time()
+            channel_alloc_optimizer = copy.deepcopy(channel_alloc_init)
+            power_alloc_AGA,AGA_converge_i, AGA_total_i = PA_AGA(h_DC, B, noise_vec_cg, SU_power_optimizer, QoS_optimizer, SNR_gap_optimizer,
+                                     channel_alloc_optimizer,
+                                     priority_optimizer, np.array(p_min)[0])
+            power_alloc_AGA = np.asarray(power_alloc_AGA)
+            power_alloc_AGA_record[cluster_list] = power_alloc_AGA
+            power_alloc_AGA = power_alloc_AGA.reshape((-1, 1))
+            AGA_time = time.time() - start
+            AGA_converge_time = AGA_time * AGA_converge_i / AGA_total_i
+            print('AGA time cost:', AGA_time)
+            AGA_feasible_number=0
+            print('Power allocation (AGA):')
+            if len(cluster_list) > 0:
+                for i in range(n_cluster_optimizer):
+                    rate = capacity_SU(power_alloc_AGA[i], i, channel_alloc_optimizer, power_alloc_AGA,
+                                       priority_optimizer, h_DC, B, noise_vec_cg,
+                                       SNR_gap_optimizer)
+                    if rate*10**6 >= QoS_optimizer[i]:
+                        AGA_feasible_number+=1
+                    print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i], power_alloc_AGA[i][0], rate))
+
+            total_rate_AGA = objective_value(channel_alloc_optimizer, power_alloc_AGA,
+                                             priority_optimizer, h_DC, B, noise_vec_cg,
+                                             SNR_gap_optimizer)
+            print('Total rate with AGA', total_rate_AGA)
 
             '''
             Iteration (DC programming)
@@ -180,10 +215,10 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             objective_list_DC = {'total': []}
 
             # Use GP as initial power allocation
-            power_alloc_DC = copy.deepcopy(power_alloc_GP)
+            # power_alloc_DC = copy.deepcopy(power_alloc_GP)
 
             # Use feasibility check result as initial power allocation
-            # power_alloc_DC = p_min[idx_ch][:len(cluster_list)]
+            power_alloc_DC = p_min[idx_ch][:len(cluster_list)]
 
             # Zero initial power allocation
             # power_alloc_DC = np.zeros((len(cluster_list), 1))
@@ -193,25 +228,26 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                 SNR_gap_optimizer)
             objective_list_DC['total'].append(total_rate_before)
-            # print('total rate before DC: ', total_rate_before)
+            print('total rate before DC: ', total_rate_before)
 
             # power allocation update
             start = time.time()
-            power_engine = PA_DC_MCS_minRate_channelCap(power_alloc_DC, channel_alloc_optimizer,
-                                                        h_DC,
-                                                        B,
-                                                        noise_vec_cg,
-                                                        priority_optimizer, SU_power_optimizer,
-                                                        QoS_optimizer,
-                                                        SNR_gap_optimizer, QAM_cap_optimizer,
-                                                        channel_cap_optimizer,
-                                                        objective_list_DC, update_order_optimizer,
-                                                        h_minRate)
-
-            power_alloc_DC = power_engine.power_alloc
+            # power_engine = PA_DC_MCS_minRate_channelCap(power_alloc_DC, channel_alloc_optimizer,
+            #                                             h_DC,
+            #                                             B,
+            #                                             noise_vec_cg,
+            #                                             priority_optimizer, SU_power_optimizer,
+            #                                             QoS_optimizer,
+            #                                             SNR_gap_optimizer, QAM_cap_optimizer,
+            #                                             channel_cap_optimizer,
+            #                                             objective_list_DC, update_order_optimizer,
+            #                                             h_minRate)
+            #
+            # power_alloc_DC = power_engine.power_alloc
             DC_time = time.time() - start
             # print('DC time cost:', DC_time)
-            SUCCESS_INDICATOR_temp = power_engine.Succeed
+            # SUCCESS_INDICATOR_temp = power_engine.Succeed
+            SUCCESS_INDICATOR_temp = True
 
             power_alloc_DC_round=np.round(power_alloc_DC, decimals=-1)
 
@@ -223,7 +259,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                 total_rate_after_DC_round = objective_value(channel_alloc_optimizer, power_alloc_DC_round,
                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                 SNR_gap_optimizer)
-                # print('total rate after DC:', total_rate_after_DC)
+                print('total rate after DC:', total_rate_after_DC)
             else:
                 # print('Power allocation fail, remove the last cluster ', cluster_list[-1],  ' from current channel.')
                 cluster_list = cluster_list[:-1]
@@ -269,4 +305,6 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                     power_alloc_GA_record,
                                                     sort_output=True)
 
-    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs, out_power_GA, converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round
+    return out_cluster_IDs, out_1st_channel_idx, out_num_channels, out_power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs, out_power_GA,\
+    converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round, GA_feasible_number, AGA_feasible_number, AGA_time, total_rate_AGA, AGA_converge_time, AGA_converge_i
+
