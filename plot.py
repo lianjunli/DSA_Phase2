@@ -2,10 +2,12 @@ import numpy as np
 import copy
 import matplotlib.pyplot as plt
 #[GA_converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round]
-result = np.load('D:\\VTProjects\\DSA_phase2 - GAPower\\saved_results\\GA_power_results_GA.npy')
-result_quantize = np.load('D:\\VTProjects\\DSA_phase2 - GAPower\\saved_results\\GA_power_results_QuantizeDC.npy')
-result_final = copy.deepcopy(result_quantize)
-result_final[:,:,[0, 1, 2, 4]] = result[:,:, [5, 0, 1, 3]]
+# result = np.load('D:\\VTProjects\\DSA_phase2 - GAPower\\saved_results\\GA_power_results_GA.npy')
+# result_quantize = np.load('D:\\VTProjects\\DSA_phase2 - GAPower\\saved_results\\GA_power_results_QuantizeDC.npy')
+# result_final = copy.deepcopy(result_quantize)
+# result_final[:,:,[0, 1, 2, 4]] = result[:,:, [5, 0, 1, 3]]
+
+result_final = np.load('D:\\VTProjects\\DSA_phase2 - GAPower\\saved_results\\GA_power_results.npy')
 result_final_avg = np.mean(result_final, axis = 1)
 result_final_std = np.std(result_final, axis = 1)
 
