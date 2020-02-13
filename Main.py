@@ -5,10 +5,10 @@ import numpy as np
 
 
 # The total number of clusters
-# n_cluster_set = [10, 20, 30, 40, 50]
-n_cluster_set = range(10,101,10)
+n_cluster_set = [100]
+# n_cluster_set = range(10,101,10)
 
-n_round = 10
+n_round = 1
 
 result = np.zeros((len(n_cluster_set), n_round, 7))
 

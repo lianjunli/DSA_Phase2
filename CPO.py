@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-from Channel_Allocation_exhaustive import CA_type1
+from Channel_Allocation import CA_type1
 from Channel_Grouping import ChannelGrouping
 from Power_allocation import PA_GP_MCS_minRate
 from DC_MCS_minRate_channelCap import PA_DC_MCS_minRate_channelCap
@@ -183,7 +183,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             power_alloc_DC = copy.deepcopy(power_alloc_GP)
 
             # Use feasibility check result as initial power allocation
-            # power_alloc_DC = p_min_scaled[idx_ch][:len(cluster_list)]
+            # power_alloc_DC = p_min[idx_ch][:len(cluster_list)]
 
             # Zero initial power allocation
             # power_alloc_DC = np.zeros((len(cluster_list), 1))
