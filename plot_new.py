@@ -2,6 +2,28 @@ import numpy as np
 import copy
 import matplotlib.pyplot as plt
 
+# 0	GA_converge_i
+# 1	 AGA_converge_i
+# 2	 GA_time
+# 3	 AGA_time
+# 4	GA_converge_time
+# 5	 AGA_converge_time
+# 6	 DC_time
+# 7	 total_rate_GA
+# 8	 total_rate_after_DC
+# 9	 total_rate_after_DC_round
+# 10	total_rate_AGA
+# 11	 GA_feasible_number
+# 12	AGA_feasible_number
+# 13	 GA_new_time
+# 14	 GAnew_converge_time
+# 15	 total_rate_GA_new
+# 16	 n_fsb_clusters_GA_new
+# 17	 n_min_rate_adjusted
+# 18	n_fsb_clusters_DC
+# 19	rate_1d
+
+
 GA = True
 AGA = True
 GA_new = False

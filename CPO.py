@@ -13,11 +13,14 @@ from PowerAllocation_1dOpt import PA_1dOpt
 import time
 
 def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type, SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth):
-    GA = True
-    AGA = True
-    GA_new = False
-    DC_1d = False
-    silent = True
+    GA = 0
+    AGA = 0
+    GA_new = 0
+    DC_1d = 1
+    silent = 1
+
+    DC_change_order = 1
+    min_rate_margin=0.005
 
     alpha = 10 ** (minRateMargin / 10)
     SU_power = 10 ** (np.asarray(maxPower) / 10)
@@ -183,7 +186,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                     rate = capacity_SU(power_alloc_GA[i], i, channel_alloc_optimizer, power_alloc_GA,
                                     priority_optimizer, h_DC, B, noise_vec_cg,
                                     SNR_gap_optimizer)
-                    if rate*10**6 >= QoS_optimizer[i]:
+                    if rate*10**6 >= QoS_optimizer[i] - min_rate_margin*10**6:
                         GA_feasible_number+=1
                     if not silent:
                         print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i],power_alloc_GA[i][0],rate))
@@ -222,7 +225,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                     rate = capacity_SU(power_alloc_AGA[i], i, channel_alloc_optimizer, power_alloc_AGA,
                                        priority_optimizer, h_DC, B, noise_vec_cg,
                                        SNR_gap_optimizer)
-                    if rate*10**6 >= QoS_optimizer[i]:
+                    if rate*10**6 >= QoS_optimizer[i] - min_rate_margin*10**6:
                         AGA_feasible_number+=1
                     if not silent:
                         print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i], power_alloc_AGA[i][0], rate))
@@ -266,7 +269,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                     rate = capacity_SU(power_alloc_GA_new[i], i, channel_alloc_optimizer, power_alloc_GA_new,
                                        priority_optimizer, h_DC, B, noise_vec_cg,
                                        SNR_gap_optimizer)
-                    if rate >= QoS[0] / (10 ** 6):
+                    if rate >= QoS[0] / (10 ** 6) - min_rate_margin:
                         n_fsb_clusters_GA_new += 1
                     else:
                         rate_nfsb_clusters_newGA.append((i, rate))
@@ -297,6 +300,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
 
             n_fsb_clusters_1dOpt = 0
             rate_nfsb_clusters_1dOpt = []
+            rate_record_1d=[]
             if not silent:
                 print('Power allocation (1d):')
             if len(cluster_list) > 0:
@@ -304,10 +308,12 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                     rate = capacity_SU(power_alloc_1dOpt[i], i, channel_alloc_optimizer, power_alloc_1dOpt_round,
                                        priority_optimizer, h_DC, B, noise_vec_cg,
                                        SNR_gap_optimizer)
-                    if rate >= QoS[0] / (10 ** 6):
+                    rate_record_1d.append(rate)
+                    if rate >= QoS[0] / (10 ** 6) - min_rate_margin:
                         n_fsb_clusters_1dOpt += 1
                     else:
                         rate_nfsb_clusters_1dOpt.append((i, rate))
+                        print(rate, cluster_list[i])
                     if not silent:
                         print( 'Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i], power_alloc_1dOpt_round[i][0], rate))
 
@@ -321,6 +327,8 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             '''
             Iteration (DC programming)
             '''
+            if DC_change_order:
+                update_order_optimizer = np.argsort(np.asarray(rate_record_1d))
             # Use the initialized channel allocation
             channel_alloc_optimizer = copy.deepcopy(channel_alloc_init)
 
@@ -332,7 +340,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
 
             # Use feasibility check result as initial power allocation
             # power_alloc_DC = p_min[idx_ch][:len(cluster_list)]
-            power_alloc_DC = power_alloc_1dOpt_round
+            power_alloc_DC = power_alloc_1dOpt
 
             # Zero initial power allocation
             # power_alloc_DC = np.zeros((len(cluster_list), 1))
@@ -352,11 +360,12 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                             B,
                                                             noise_vec_cg,
                                                             priority_optimizer, SU_power_optimizer,
-                                                            QoS_optimizer - 0.0001 * 10**6,
+                                                            QoS_optimizer - min_rate_margin * 10**6,
                                                             SNR_gap_optimizer, QAM_cap_optimizer,
                                                             channel_cap_optimizer,
                                                             objective_list_DC, update_order_optimizer,
-                                                            h_minRate)
+                                                            h_minRate,
+                                                            DC_change_order)
 
                 power_alloc_DC = power_engine.power_alloc
             DC_time = time.time() - start
@@ -393,8 +402,10 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                 rate = capacity_SU(power_alloc_DC[i], i, channel_alloc_optimizer, power_alloc_DC,
                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                 SNR_gap_optimizer)
-                if rate >= QoS[0] / (10 ** 6):
+                if rate >= QoS[0] / (10 ** 6) - min_rate_margin:
                     n_fsb_clusters_DC += 1
+                else:
+                    print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i], power_alloc_DC[i][0], rate))
                 if not silent:
                     print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i],power_alloc_DC[i][0],rate))
 

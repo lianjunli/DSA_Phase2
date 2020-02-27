@@ -19,10 +19,11 @@ This is the method of
 class PA_DC_MCS_minRate_channelCap:
 
     def __init__(self, power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
-                 minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order, channel_gain_minR):
+                 minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order, channel_gain_minR, DC_change_order):
         self.minRate = minRate
         self.power_alloc = copy.deepcopy(power_alloc)
         self.Succeed = False
+        self.DC_change_order=DC_change_order
         self.capacity_SU = np.zeros(power_alloc.shape[0])
         self.power_allocation(power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
                               minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order,channel_gain_minR)
@@ -179,7 +180,7 @@ class PA_DC_MCS_minRate_channelCap:
                         if (self.capacity_SU[n] * (10**6) < minRate[n] - 0.001 * (10**6)):
                             # check if the user is possible to meet the minimum data rate
                             if(self.SU_max_power[n] < np.amin(self.minRate_b[-1] / self.minRate_h[-1, :])):
-                                # print('The required data rate cannot be satisfied')
+                                print('The required data rate cannot be satisfied')
                                 # os._exit(0)
                                 return
 
@@ -210,6 +211,7 @@ class PA_DC_MCS_minRate_channelCap:
                                 print('minRate is not satisfied for %.4f Mbps' % (minRate[n]/(10**6) - self.capacity_SU[n]))
                                 continue
                         else:
+                            # print('break line 214')
                             break
 
                         # '''
@@ -245,7 +247,15 @@ class PA_DC_MCS_minRate_channelCap:
                 power_alloc[n, :] = power_alloc_comb[max_capacity_index][n, :]
                 objective_list['total'].append(
                     objective_value(channel_alloc, power_alloc, priority, channel_gain, B, noise_vec, SNR_gap))
-
+            #calculate rate for each cluster based on current power allocation
+            rate_record = []
+            for i in range(len(noise_vec)):
+                rate = capacity_SU(power_alloc[i], i, channel_alloc, power_alloc,
+                                   priority, channel_gain, B, noise_vec,
+                                   SNR_gap)
+                rate_record.append(rate)
+            if self.DC_change_order:
+                update_order = np.argsort(np.asarray(rate_record))
 
             toc = time.time()
             if (toc-tic) > 5:
@@ -254,7 +264,7 @@ class PA_DC_MCS_minRate_channelCap:
                 self.power_alloc = self.power_alloc * SU_power[0] / np.max(self.power_alloc)
                 break
 
-            if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 1 ):
+            if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 0.1 ):
                 # print('power allocation is updated')
                 # print('number of search nodes = %d' % self.n_search_node_total)
                 self.Succeed = True # found solution

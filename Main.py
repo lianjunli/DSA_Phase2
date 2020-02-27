@@ -6,10 +6,10 @@ np.set_printoptions(linewidth=300)
 
 
 # The total number of clusters
-# n_cluster_set = [100]
-n_cluster_set = range(20,101,20)
+n_cluster_set = [100]
+# n_cluster_set = range(20,101,20)
 
-n_round = 5
+n_round = 1
 
 result = np.zeros((len(n_cluster_set), n_round, 20))
 minrate_adjust_list=[]
@@ -107,7 +107,7 @@ for i in range(len(n_cluster_set)):
         # print('\n** Evaluation with GA power allocation')
         # performance_evaluation(cluster_IDs, first_channel_idx, num_channels, power_GA, cluster_ID, h_all, noise_vec, 0,
         #                        n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth)
-        np.save('.\\saved_results\\GA_AGA.npy', result)
+        np.save('.\\saved_results\\test.npy', result)
         # np.save('.\\saved_results\\minrateadjust.npy', minrate_adjust_list)
         # np.save('.\\saved_results\\infeasiblecluster.npy', infeasible_cluster_list)
 print('done')
