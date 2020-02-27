@@ -15,7 +15,7 @@ class Fitness:
 
     def allocFitness(self):
         if self.fitness == 0:
-            self.fitness = self.n_succ + np.finfo(float).eps + np.tanh(self.throughput / 10)
+            self.fitness = self.n_succ + np.finfo(float).eps + np.tanh(self.throughput / 100)
         return self.fitness
 
 

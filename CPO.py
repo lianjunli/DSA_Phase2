@@ -16,7 +16,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
     GA = True
     AGA = True
     GA_new = False
-    DC_1d = True
+    DC_1d = False
     silent = True
 
     alpha = 10 ** (minRateMargin / 10)
