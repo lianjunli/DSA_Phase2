@@ -19,14 +19,16 @@ This is the method of
 class PA_DC_MCS_minRate_channelCap:
 
     def __init__(self, power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
-                 minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order, channel_gain_minR, DC_change_order):
+                 minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order, channel_gain_minR, DC_change_order, reverse_order):
         self.minRate = minRate
         self.power_alloc = copy.deepcopy(power_alloc)
         self.Succeed = False
         self.DC_change_order=DC_change_order
+        self.reverse_order = reverse_order
         self.capacity_SU = np.zeros(power_alloc.shape[0])
         self.power_allocation(power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
                               minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order,channel_gain_minR)
+
 
 
     def max_distance(self, arr):
@@ -255,7 +257,10 @@ class PA_DC_MCS_minRate_channelCap:
                                    SNR_gap)
                 rate_record.append(rate)
             if self.DC_change_order:
-                update_order = np.argsort(np.asarray(rate_record))
+                if not self.reverse_order:
+                    update_order = np.argsort(np.asarray(rate_record))
+                else:
+                    update_order = np.argsort(-np.asarray(rate_record))
 
             toc = time.time()
             if (toc-tic) > 5:

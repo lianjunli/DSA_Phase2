@@ -20,6 +20,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
     silent = 1
 
     DC_change_order = 1
+    reverse_order = 1
     min_rate_margin=0.005
 
     alpha = 10 ** (minRateMargin / 10)
@@ -328,7 +329,10 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             Iteration (DC programming)
             '''
             if DC_change_order:
-                update_order_optimizer = np.argsort(np.asarray(rate_record_1d))
+                if not reverse_order:
+                    update_order_optimizer = np.argsort(np.asarray(rate_record_1d))
+                else:
+                    update_order_optimizer = np.argsort(-np.asarray(rate_record_1d))
             # Use the initialized channel allocation
             channel_alloc_optimizer = copy.deepcopy(channel_alloc_init)
 
@@ -365,7 +369,8 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                             channel_cap_optimizer,
                                                             objective_list_DC, update_order_optimizer,
                                                             h_minRate,
-                                                            DC_change_order)
+                                                            DC_change_order,
+                                                            reverse_order)
 
                 power_alloc_DC = power_engine.power_alloc
             DC_time = time.time() - start
