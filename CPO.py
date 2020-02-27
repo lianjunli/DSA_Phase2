@@ -191,7 +191,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             total_rate_GA = objective_value(channel_alloc_optimizer, power_alloc_GA,
                                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                                 SNR_gap_optimizer)
-            print('Total rate with GA', total_rate_GA)
+            print('Total rate with GA', total_rate_GA, 'Feasible Number:', GA_feasible_number)
 
             '''
             Aternative Genetic Algorithm
@@ -230,7 +230,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             total_rate_AGA = objective_value(channel_alloc_optimizer, power_alloc_AGA,
                                              priority_optimizer, h_DC, B, noise_vec_cg,
                                              SNR_gap_optimizer)
-            print('Total rate with AGA', total_rate_AGA)
+            print('Total rate with AGA', total_rate_AGA, 'Feasible Number:', AGA_feasible_number)
 
             '''
             New Genetic Algorithm
@@ -266,7 +266,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                     rate = capacity_SU(power_alloc_GA_new[i], i, channel_alloc_optimizer, power_alloc_GA_new,
                                        priority_optimizer, h_DC, B, noise_vec_cg,
                                        SNR_gap_optimizer)
-                    if rate > QoS[0] / (10 ** 6):
+                    if rate >= QoS[0] / (10 ** 6):
                         n_fsb_clusters_GA_new += 1
                     else:
                         rate_nfsb_clusters_newGA.append((i, rate))
@@ -277,7 +277,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                                 SNR_gap_optimizer)
             print('Total rate with new GA', total_rate_GA_new)
-            print('Number of feasible clusters in newGA:', n_fsb_clusters_GA_new)
+            print('Number of feasible clusters in newGA:', n_fsb_clusters_GA_new, 'Feasible number:', n_fsb_clusters_GA_new)
 
             '''
             1d Optimized Power
@@ -304,7 +304,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                     rate = capacity_SU(power_alloc_1dOpt[i], i, channel_alloc_optimizer, power_alloc_1dOpt_round,
                                        priority_optimizer, h_DC, B, noise_vec_cg,
                                        SNR_gap_optimizer)
-                    if rate > (QoS[0] - 0.001) / (10 ** 6):
+                    if rate >= QoS[0] / (10 ** 6):
                         n_fsb_clusters_1dOpt += 1
                     else:
                         rate_nfsb_clusters_1dOpt.append((i, rate))
@@ -315,7 +315,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                                 SNR_gap_optimizer)
             print('Total rate with 1d Optimized power', total_rate_1d)
-            print('Number of feasible clusters in 1d Optimized power:', n_fsb_clusters_1dOpt)
+            print('Number of feasible clusters in 1d Optimized power:', n_fsb_clusters_1dOpt, 'Feasible number:', n_fsb_clusters_1dOpt)
 
 
             '''
@@ -399,7 +399,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                     print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (cluster_list[i],power_alloc_DC[i][0],rate))
 
         idx_ch += 1
-
+        print('DC feasible number:', n_fsb_clusters_DC)
 
 
     if SUCCESS_INDICATOR_DC:
