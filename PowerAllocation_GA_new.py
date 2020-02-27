@@ -1,7 +1,7 @@
-from AlternativeGA_new import *
+from GA_new import *
 from HelperFunc_CPO import capacity_SU
 
-def PA_AGA(h, B, noise_vec_cg, SU_power_optimizer, QoS_optimizer,SNR_gap_optimizer, channel_alloc_optimizer, priority_optimizer, fsb_power):
+def PA_GA_new(h, B, noise_vec_cg, SU_power_optimizer, QoS_optimizer,SNR_gap_optimizer, channel_alloc_optimizer, priority_optimizer, fsb_power):
     n_cluster = h.shape[0]
     max_power = SU_power_optimizer[0]
     min_rate = QoS_optimizer[0]
@@ -31,6 +31,8 @@ def PA_AGA(h, B, noise_vec_cg, SU_power_optimizer, QoS_optimizer,SNR_gap_optimiz
         min_rate_adjusted.append(rate_cluster)
     min_rate_adjusted = np.array(min_rate_adjusted)
     min_rate_adjusted[np.where(min_rate_adjusted >= min_rate / (10 ** 6))[0]] = min_rate / (10 ** 6)
+    min_rate_adjusted = min_rate_adjusted
+    n_min_rate_adjusted = np.sum(min_rate_adjusted < min_rate / (10 ** 6))
 
     pl_vec = scaled_fsb_pl
     rate = []
@@ -45,7 +47,7 @@ def PA_AGA(h, B, noise_vec_cg, SU_power_optimizer, QoS_optimizer,SNR_gap_optimiz
     best_throughput = np.sum(rate)
     debug_counter=0
     while True:
-        # print('AGA while loop', debug_counter)
+        # print('GA_new while loop',debug_counter)
         debug_counter+=1
         pl_vec = pl_vec + 1
         indices_rounddown = ((pl_vec - max_pl) > 0)
@@ -76,7 +78,6 @@ def PA_AGA(h, B, noise_vec_cg, SU_power_optimizer, QoS_optimizer,SNR_gap_optimiz
     pop = initialPopulation(popSize, n_cluster, fsb_pl, scaled_fsb_pl, OneDim_opt_pl, max_pl)
 
     for i_gen in range(generations):
-        # print('AGA generation loop', i_gen)
         n_succ = np.zeros(popSize)
         throughput = np.zeros(popSize)
 
@@ -100,15 +101,27 @@ def PA_AGA(h, B, noise_vec_cg, SU_power_optimizer, QoS_optimizer,SNR_gap_optimiz
     bestAlloc = pop[bestAllocIndex]
     bestAlloc = np.asarray(bestAlloc) * unit_power
     bestAlloc = list(bestAlloc)
-    converge_n = generations
-    for n in range(len(fit_hist)):
-        if abs(fit_hist[-1] - fit_hist[n] < 0.01):
-            converge_n = n
-            break
     # plt.plot(fit_hist)
     # # plt.show()
     # plt.savefig('GA_curve')
 
     np.save('fit_AGA.npy', fit_hist)
 
-    return bestAlloc,converge_n, generations
+    # Record rate for each cluster
+    final_rate = []
+
+    power_all = np.asarray(bestAlloc)
+    power_all = power_all.reshape((-1, 1))
+    for j in range(n_cluster):
+        rate_cluster = capacity_SU(power_all[j, :], j, channel_alloc_optimizer, power_all,
+                                   priority_optimizer, h, B, noise_vec_cg,
+                                   SNR_gap_optimizer)
+        final_rate.append(rate_cluster)
+    np.save('rate_AGA_100.npy', final_rate)
+    converge_n = generations
+    for n in range(len(fit_hist)):
+        if abs(fit_hist[-1] - fit_hist[n] < 0.01):
+            converge_n = n
+            break
+
+    return bestAlloc, min_rate_adjusted, generations, converge_n, n_min_rate_adjusted

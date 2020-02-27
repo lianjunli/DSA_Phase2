@@ -2,21 +2,24 @@ from Environment_simulation import environment_simulation
 from CPO import CPO
 from Performance_evaluation import performance_evaluation
 import numpy as np
+np.set_printoptions(linewidth=300)
 
 
 # The total number of clusters
-# n_cluster_set = [10, 20]
-n_cluster_set = range(20,101,20)
+n_cluster_set = [100]
+# n_cluster_set = range(20,101,20)
 
-n_round = 5
+n_round = 1
 
-result = np.zeros((len(n_cluster_set), n_round, 13))
+result = np.zeros((len(n_cluster_set), n_round, 20))
+minrate_adjust_list=[]
+infeasible_cluster_list=[]
 
 for i in range(len(n_cluster_set)):
     for j in range(n_round):
         ###----------------------SYSTEM INPUTS----------------------###
         print('cluster number: ', n_cluster_set[i], ' round: ', j+1)
-        random_seed = i+j
+        random_seed = j
 
         # Minimum data rate scaling up factor in dB
         min_Rate_Margin = 0
@@ -27,7 +30,7 @@ for i in range(len(n_cluster_set)):
         shadow_Fading_Margin = 0
 
         # Simulation area (square meter)
-        area = 1200
+        area = 2000
 
         # Intra cluster channel gain type used in minimum data constraint: min: minimum channel gain; average: geometric average channel gain
         minRate_intra_gain_type = 1  # min = 2, average = 1
@@ -77,12 +80,15 @@ for i in range(len(n_cluster_set)):
         # channel allocation and power allocation
         cluster_IDs, first_channel_idx, num_channels, power, SUCCESS_INDICATOR, noise_vec, cluster_infeasible_IDs, power_GA, \
         GA_converge_i, GA_time, GA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round,GA_feasible_number,AGA_feasible_number, \
-        AGA_time, total_rate_AGA, AGA_converge_time, AGA_converge_i\
+        AGA_time, total_rate_AGA, AGA_converge_time, AGA_converge_i, GA_new_time, GAnew_converge_time, total_rate_GA_new,\
+           n_fsb_clusters_GA_new,min_rate_adjusted_GA_new,rate_nfsb_clusters_newGA, n_min_rate_adjusted, n_fsb_clusters_DC, rate_1d\
             = CPO(min_Rate_Margin, h_mean, h_min, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type,\
                   SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth)
 
         result[i,j,:] = [GA_converge_i, AGA_converge_i, GA_time, AGA_time,GA_converge_time, AGA_converge_time, DC_time, total_rate_GA, total_rate_after_DC, total_rate_after_DC_round,\
-                         total_rate_AGA, GA_feasible_number,AGA_feasible_number]
+                         total_rate_AGA, GA_feasible_number,AGA_feasible_number, GA_new_time, GAnew_converge_time, total_rate_GA_new, n_fsb_clusters_GA_new, n_min_rate_adjusted,n_fsb_clusters_DC,rate_1d]
+        minrate_adjust_list.append(min_rate_adjusted_GA_new)
+        infeasible_cluster_list.append(rate_nfsb_clusters_newGA)
 
         # print('\n** CPO Outputs:')
         # print('Clusters cannot be assigned:', cluster_infeasible_IDs)
@@ -101,5 +107,7 @@ for i in range(len(n_cluster_set)):
         # print('\n** Evaluation with GA power allocation')
         # performance_evaluation(cluster_IDs, first_channel_idx, num_channels, power_GA, cluster_ID, h_all, noise_vec, 0,
         #                        n_cluster, n_user_cluster, SNR_gap_dB, minRate, unit_bandwidth)
-        np.save('.\\saved_results\\GA_power_results.npy', result)
+        np.save('.\\saved_results\\test.npy', result)
+        # np.save('.\\saved_results\\minrateadjust.npy', minrate_adjust_list)
+        # np.save('.\\saved_results\\infeasiblecluster.npy', infeasible_cluster_list)
 print('done')
