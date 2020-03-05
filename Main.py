@@ -13,7 +13,7 @@ Log_Normal_sigma = 0
 shadow_Fading_Margin = 0
 
 # Simulation area (square meter)
-area = 900
+area = 600
 
 # Intra cluster channel gain type used in minimum data constraint: min: minimum channel gain; average: geometric average channel gain
 minRate_intra_gain_type = 1  # min = 2, average = 1
@@ -22,7 +22,7 @@ minRate_intra_gain_type = 1  # min = 2, average = 1
 DC_intra_gain_type = 1 # min = 2, average = 1
 
 # The total number of clusters
-n_cluster = 20
+n_cluster = 10
 
 # Radio cluster ID
 cluster_ID = list(range(2001, 2001 + n_cluster))
