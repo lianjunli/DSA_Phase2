@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from HelperFunc_CPO import diff_in_throughput
 
 
-def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, noise_mat, SNR_gap, QoS, shadow_Fading_Margin):
+def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, noise_mat, SNR_gap, QoS, shadow_Fading_Margin, priority):
 
     IS_SUCC = True
 
@@ -12,6 +12,7 @@ def CA_type1(n_cluster, h_mean, h_min, cg, minRate_inter_gain_type, maxPower, no
 
     n_cluster = n_cluster
     unassigned_user_list = [int(i) for i in range(n_cluster)]
+    unassigned_user_list = np.asarray(unassigned_user_list)[np.argsort(priority)].tolist()
 
     if minRate_inter_gain_type == 2:
         ch_gains = h_min
