@@ -19,12 +19,16 @@ This is the method of
 class PA_DC_MCS_minRate_channelCap:
 
     def __init__(self, power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
-                 minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order, channel_gain_minR):
+                 minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order, channel_gain_minR, DC_change_order, reverse_order):
+        self.minRate = minRate
         self.power_alloc = copy.deepcopy(power_alloc)
         self.Succeed = False
+        self.DC_change_order=DC_change_order
+        self.reverse_order = reverse_order
         self.capacity_SU = np.zeros(power_alloc.shape[0])
         self.power_allocation(power_alloc, channel_alloc, channel_gain, B, noise_vec, priority, SU_power,
                               minRate, SNR_gap, QAM_cap, channel_cap, objective_list, update_order,channel_gain_minR)
+
 
 
     def max_distance(self, arr):
@@ -61,7 +65,7 @@ class PA_DC_MCS_minRate_channelCap:
         for m in range(n_channel):
             if (channel_alloc[SU_index, m] == 1):
                 a = self.A(SU_index, m, power_alloc, channel_alloc, channel_gain, noise_vec, SNR_gap)
-                numerator = numerator + np.log2(a/gradient[index])
+                numerator = numerator + np.log2(a/(gradient[index] + np.finfo(float).eps) + np.finfo(float).eps)
                 index = index + 1
 
         k = 2 ** (numerator / denominator)
@@ -175,10 +179,10 @@ class PA_DC_MCS_minRate_channelCap:
                                                           priority, channel_gain_minR, B, noise_vec, SNR_gap)
                         capacity_comb[index_iter] = self.capacity_SU[n]
 
-                        if (self.capacity_SU[n] * (10**6) < minRate[n]):
+                        if (self.capacity_SU[n] * (10**6) < minRate[n] - 0.001 * (10**6)):
                             # check if the user is possible to meet the minimum data rate
                             if(self.SU_max_power[n] < np.amin(self.minRate_b[-1] / self.minRate_h[-1, :])):
-                                # print('The required data rate cannot be satisfied')
+                                print('The required data rate cannot be satisfied')
                                 # os._exit(0)
                                 return
 
@@ -206,34 +210,37 @@ class PA_DC_MCS_minRate_channelCap:
                                 # Add more linear constraints to upper bound the convex set
                                 self.minRate_h = np.vstack((self.minRate_h, -h))
                                 self.minRate_b = np.append(self.minRate_b, -b)
-                                print('minRate is not satisfied for %.2f Mbps' % (minRate[n]/(10**6) - self.capacity_SU[n]))
+                                print('minRate is not satisfied for %.4f Mbps' % (minRate[n]/(10**6) - self.capacity_SU[n]))
                                 continue
-
-                        '''
-                        Check if other users meet the minimum data rate requirements
-                        '''
-                        unsatisfied_user = np.zeros(n_su)
-                        for j in range(n_su):
-                            if (j != n and np.sum(channel_alloc[j, :]) > 0):
-                                gradient = np.ones(int(np.sum(channel_alloc[j, :])))
-                                h, b, p = self.region_minRate(j, gradient, minRate, self.power_alloc, tmp_channel_alloc, channel_gain_minR, B, noise_vec, SNR_gap)
-                                # Impossible to find user j's power allocation to let user j's minRate is satisfied
-                                if ( b > SU_power[j] ):
-                                    unsatisfied_user[j] = 1
-                                # The search region of user j's power allocation should include original power allocation
-                                if ( b > np.sum(power_alloc[j,:])):
-                                    unsatisfied_user[j] = 1
-
-                        if (np.sum(unsatisfied_user) == 0):
-                            break
                         else:
-                            #print('Other users minRate cannot be satisfied for %.2f mW' % max_sumPowerDiff)
-                            # print('Other users minRate cannot be satisfied')
-                            self.SU_max_power[n] = max(-self.minRate_b[0], np.sum(self.power_alloc[n, :]) - 100)
-                            if (self.SU_max_power[n] == -self.minRate_b[0]):
-                                # print('The required data rate cannot be satisfied')
-                                break
-                                os._exit(0)
+                            # print('break line 214')
+                            break
+
+                        # '''
+                        # Check if other users meet the minimum data rate requirements
+                        # '''
+                        # unsatisfied_user = np.zeros(n_su)
+                        # for j in range(n_su):
+                        #     if (j != n and np.sum(channel_alloc[j, :]) > 0):
+                        #         gradient = np.ones(int(np.sum(channel_alloc[j, :])))
+                        #         h, b, p = self.region_minRate(j, gradient, minRate, self.power_alloc, tmp_channel_alloc, channel_gain_minR, B, noise_vec, SNR_gap)
+                        #         # Impossible to find user j's power allocation to let user j's minRate is satisfied
+                        #         if ( b > SU_power[j] ):
+                        #             unsatisfied_user[j] = 1
+                        #         # The search region of user j's power allocation should include original power allocation
+                        #         if ( b > np.sum(power_alloc[j,:])):
+                        #             unsatisfied_user[j] = 1
+                        #
+                        # if (np.sum(unsatisfied_user) == 0):
+                        #     break
+                        # else:
+                        #     #print('Other users minRate cannot be satisfied for %.2f mW' % max_sumPowerDiff)
+                        #     # print('Other users minRate cannot be satisfied')
+                        #     self.SU_max_power[n] = max(-self.minRate_b[0], np.sum(self.power_alloc[n, :]) - 100)
+                        #     if (self.SU_max_power[n] == -self.minRate_b[0]):
+                        #         # print('The required data rate cannot be satisfied')
+                        #         break
+                        #         os._exit(0)
 
 
                 # Take the power allocation with the maximum capacity
@@ -242,7 +249,18 @@ class PA_DC_MCS_minRate_channelCap:
                 power_alloc[n, :] = power_alloc_comb[max_capacity_index][n, :]
                 objective_list['total'].append(
                     objective_value(channel_alloc, power_alloc, priority, channel_gain, B, noise_vec, SNR_gap))
-
+            #calculate rate for each cluster based on current power allocation
+            rate_record = []
+            for i in range(len(noise_vec)):
+                rate = capacity_SU(power_alloc[i], i, channel_alloc, power_alloc,
+                                   priority, channel_gain, B, noise_vec,
+                                   SNR_gap)
+                rate_record.append(rate)
+            if self.DC_change_order:
+                if not self.reverse_order:
+                    update_order = np.argsort(np.asarray(rate_record))
+                else:
+                    update_order = np.argsort(-np.asarray(rate_record))
 
             toc = time.time()
             if (toc-tic) > 5:
@@ -251,7 +269,7 @@ class PA_DC_MCS_minRate_channelCap:
                 self.power_alloc = self.power_alloc * SU_power[0] / np.max(self.power_alloc)
                 break
 
-            if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 1 ):
+            if (np.amax(np.absolute(power_alloc - previous_power_alloc)) < 0.1 ):
                 # print('power allocation is updated')
                 # print('number of search nodes = %d' % self.n_search_node_total)
                 self.Succeed = True # found solution
@@ -262,7 +280,29 @@ class PA_DC_MCS_minRate_channelCap:
                                      priority, SNR_gap, SU_index):
 
         n = SU_index
+        n_clusters = power_alloc.shape[0]
         n_channel = power_alloc.shape[1]
+
+        QoS = self.minRate[0]
+
+        gamma = (2 ** (QoS / B) - 1) * SNR_gap[0]
+
+        maxPower_for_minRates = []
+        for l in range(n_clusters):
+            if l == n:
+                continue
+            else:
+                temp = (channel_gain[l, l] / gamma * power_alloc[l, 0] - np.sum(channel_gain[:, l] * power_alloc[:, 0])\
+                       + channel_gain[l, l] * power_alloc[l, 0] + channel_gain[n, l] * power_alloc[n, 0] - noise_vec[0]) / channel_gain[n, l]
+                # if temp < 0:
+                #     print(1)
+                if temp < power_alloc[n]:
+                    temp = power_alloc[n]
+                maxPower_for_minRates.append(temp)
+        maxPower_for_minRates = np.asarray(maxPower_for_minRates)
+        maxPower_for_minRates = np.min(maxPower_for_minRates)
+        maxPower = np.min([maxPower_for_minRates, self.SU_max_power[n]])
+
 
         G = nx.Graph()
         node_index = 1
@@ -299,7 +339,10 @@ class PA_DC_MCS_minRate_channelCap:
                 # print('number of search nodes = %d' % n_search_node)
                 # print('Processing Time = %.2f' % (toc - tic))
 
-                self.power_alloc[n, :] = power_lb_global
+                if power_lb_global < maxPower:
+                    self.power_alloc[n, :] = power_lb_global
+                else:
+                    self.power_alloc[n, :] = (maxPower + power_alloc[n, :]) / 2
                 break
             n_search_node = n_search_node + 1
             self.n_search_node_total = self.n_search_node_total + 1

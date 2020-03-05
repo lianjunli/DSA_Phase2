@@ -9,10 +9,10 @@ from Performance_evaluation import performance_evaluation
 min_Rate_Margin = 0
 
 # Shadow fading margin in dB (for environment simulation)
-Log_Normal_sigma = 6
+Log_Normal_sigma = 0
 
 # Shadow fading margin in dB (for CPO)
-shadow_Fading_Margin = 3
+shadow_Fading_Margin = 0
 
 # Simulation area (square meter)
 area = 900

@@ -5,9 +5,16 @@ from Channel_Grouping import ChannelGrouping
 from Power_allocation import PA_GP_MCS_minRate
 from DC_MCS_minRate_channelCap import PA_DC_MCS_minRate_channelCap
 from HelperFunc_CPO import objective_value, translate_to_std_output, capacity_SU
+from PowerAllocation_1dOpt import PA_1dOpt
+import time
 import os
 
 def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRate_intra_gain_type, DC_intra_gain_type, SNR_gap_dB, priority, minRate, maxPower, cluster_ID, channel_IDs, noise_mat, unit_bandwidth):
+    silent=1
+    DC_change_order = 1
+    reverse_order = 1
+    min_rate_margin=0.005
+
     alpha = 10 ** (minRateMargin / 10)
     SU_power = 10 ** (np.asarray(maxPower) / 10)
     priority = np.asarray(priority)
@@ -24,6 +31,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
         h_min[n, n] = 10 ** (-np.sqrt(shadow_Fading_Margin ** 2) / 10) * h_min_diag[n]
 
     power_alloc_DC_record = np.zeros(n_cluster)
+    power_alloc_1dOpt_record = np.zeros(n_cluster)
 
     print('\n** alpha equals to {}'.format(alpha))
 
@@ -138,6 +146,51 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                  QAM_cap_optimizer, objective_list_GP)
 
             '''
+            1d Optimized Power
+            '''
+            # Use the initialized channel allocation
+            start = time.time()
+            channel_alloc_optimizer = copy.deepcopy(channel_alloc_init)
+            power_alloc_1dOpt = PA_1dOpt(h_DC, B, noise_vec_cg, SU_power_optimizer, QoS_optimizer, SNR_gap_optimizer,
+                                         channel_alloc_optimizer,
+                                         priority_optimizer, np.array(p_min)[idx_ch])
+            power_alloc_1dOpt = np.asarray(power_alloc_1dOpt)
+            power_alloc_1dOpt_record[cluster_list] = power_alloc_1dOpt
+            power_alloc_1dOpt = power_alloc_1dOpt.reshape((-1, 1))
+            power_alloc_1dOpt_round = np.round(power_alloc_1dOpt, decimals=-1)
+            oneD_time = time.time() - start
+            print('1d optimizer time cost:', oneD_time)
+
+            n_fsb_clusters_1dOpt = 0
+            rate_nfsb_clusters_1dOpt = []
+            rate_record_1d = []
+            if not silent:
+                print('Power allocation (1d):')
+            if len(cluster_list) > 0:
+                for i in range(n_cluster_optimizer):
+                    rate = capacity_SU(power_alloc_1dOpt[i], i, channel_alloc_optimizer, power_alloc_1dOpt_round,
+                                       priority_optimizer, h_DC, B, noise_vec_cg,
+                                       SNR_gap_optimizer)
+                    rate_record_1d.append(rate)
+                    if rate >= QoS[0] / (10 ** 6) - min_rate_margin:
+                        n_fsb_clusters_1dOpt += 1
+                    else:
+                        rate_nfsb_clusters_1dOpt.append((i, rate))
+                        print(rate, cluster_list[i])
+                    if not silent:
+                        print('Cluster %d: Power = %.2f mW. Rate = %.2f Mbps' % (
+                        cluster_list[i], power_alloc_1dOpt_round[i][0], rate))
+
+            total_rate_1d = objective_value(channel_alloc_optimizer, power_alloc_1dOpt_round,
+                                            priority_optimizer, h_DC, B, noise_vec_cg,
+                                            SNR_gap_optimizer)
+            print('Total rate with 1d Optimized power', total_rate_1d)
+            print('Number of feasible clusters in 1d Optimized power:', n_fsb_clusters_1dOpt, 'Feasible number:',
+                  n_fsb_clusters_1dOpt)
+
+
+
+            '''
             Iteration (DC programming)
             '''
             # Use the initialized channel allocation
@@ -147,7 +200,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             objective_list_DC = {'total': []}
 
             # Use GP as initial power allocation
-            power_alloc_DC = copy.deepcopy(power_alloc_GP)
+            power_alloc_DC = copy.deepcopy(power_alloc_1dOpt)
 
             # Use feasibility check result as initial power allocation
             # power_alloc_DC = p_min_scaled[idx_ch][:len(cluster_list)]
@@ -168,11 +221,11 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                                                         B,
                                                         noise_vec_cg,
                                                         priority_optimizer, SU_power_optimizer,
-                                                        QoS_optimizer,
+                                                        QoS_optimizer-min_rate_margin * 10**6,
                                                         SNR_gap_optimizer, QAM_cap_optimizer,
                                                         channel_cap_optimizer,
                                                         objective_list_DC, update_order_optimizer,
-                                                        h_minRate)
+                                                        h_minRate,0,0)
 
             power_alloc_DC = power_engine.power_alloc
             SUCCESS_INDICATOR_temp = power_engine.Succeed
