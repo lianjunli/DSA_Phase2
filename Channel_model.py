@@ -69,7 +69,7 @@ class Winner2_Optimizer():
             self.center_x[n] = np.mean(self.user_x[n])
             self.center_y[n] = np.mean(self.user_y[n])
 
-        # self._plot_SU_location(self.area)
+        self._plot_SU_location(self.area)
 
     def _build_location_asymmetric(self):
 
@@ -114,7 +114,7 @@ class Winner2_Optimizer():
             self.center_x[n] = np.mean(self.user_x[n])
             self.center_y[n] = np.mean(self.user_y[n])
 
-        # self._plot_SU_location(self.area)
+        self._plot_SU_location(self.area)
 
     def _PLdB(self, d):
         return 46.4 + self.exponent * np.log10(d) + 20 * np.log10(self.fc / 5)

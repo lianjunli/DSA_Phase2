@@ -150,14 +150,17 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
             power_alloc_DC = copy.deepcopy(power_alloc_GP)
 
             # Use feasibility check result as initial power allocation
-            power_alloc_DC = p_min_scaled[idx_ch][:len(cluster_list)]
+            # power_alloc_DC = p_min_scaled[idx_ch][:len(cluster_list)]
+
+            # Zero initial power allocation
+            # power_alloc_DC = np.zeros((len(cluster_list), 1))
 
             # Record the objective value
             total_rate_before = objective_value(channel_alloc_optimizer, power_alloc_DC,
                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                 SNR_gap_optimizer)
             objective_list_DC['total'].append(total_rate_before)
-            # print('total rate before DC: ', total_rate_before)
+            print('total rate before DC: ', total_rate_before)
 
             # power allocation update
             power_engine = PA_DC_MCS_minRate_channelCap(power_alloc_DC, channel_alloc_optimizer,
@@ -178,7 +181,7 @@ def CPO(minRateMargin, h_mean, h_min_diag, h_std_dB, shadow_Fading_Margin, minRa
                 total_rate_after = objective_value(channel_alloc_optimizer, power_alloc_DC,
                                 priority_optimizer, h_DC, B, noise_vec_cg,
                                 SNR_gap_optimizer)
-                # print('total rate after DC:', total_rate_after)
+                print('total rate after DC:', total_rate_after)
             else:
                 print('Power allocation fail, remove the last cluster ', cluster_list[-1],  ' from current channel.')
                 cluster_list = cluster_list[:-1]

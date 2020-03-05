@@ -2,25 +2,26 @@ from Environment_simulation import environment_simulation
 from CPO import CPO
 from Performance_evaluation import performance_evaluation
 
+
 ###----------------------SYSTEM INPUTS----------------------###
 
 # Minimum data rate scaling up factor in dB
 min_Rate_Margin = 0
 
 # Shadow fading margin in dB (for environment simulation)
-Log_Normal_sigma = 0
+Log_Normal_sigma = 6
 
 # Shadow fading margin in dB (for CPO)
-shadow_Fading_Margin = 0
+shadow_Fading_Margin = 3
 
 # Simulation area (square meter)
-area = 600
+area = 900
 
 # Intra cluster channel gain type used in minimum data constraint: min: minimum channel gain; average: geometric average channel gain
 minRate_intra_gain_type = 1  # min = 2, average = 1
 
 # Intra cluster channel gain type used in DC objective function: min: minimum channel gain; average: geometric average channel gain
-DC_intra_gain_type = 1  # min = 2, average = 1
+DC_intra_gain_type = 1 # min = 2, average = 1
 
 # The total number of clusters
 n_cluster = 10
@@ -38,14 +39,15 @@ SNR_gap_dB = [3.9] * n_cluster
 priority = [1] * n_cluster
 
 # Minimum data rate constraint (Mbps)
-minRate = [1] * n_cluster
+minRate = [0.1] * n_cluster
 
 # Maximum power constraint (dBm)
 maxPower = [30] * n_cluster
 
 # Channel IDs
-channel_IDs = [2, 11, 12, 13, 14, 15, 16]
-# channel_IDs = [11, 12, 13, 14]
+# channel_IDs = [2, 11, 12, 13, 14, 15, 16]
+channel_IDs = [11, 12, 13, 14, 15]
+# channel_IDs = [11, 12, 13]
 # channel_IDs = [11]
 
 # Unit channel bandwidth (MHz)
